@@ -43,7 +43,8 @@ public sealed class CommandManagerService : IDisposable
                 "\t /mare gpose - 打开Mare角色数据中心界面" + Environment.NewLine +
                 "\t /mare analyze - 打开Mare角色数据分析界面" + Environment.NewLine +
                 "\t /mare settings - 打开设置界面" + Environment.NewLine +
-                "\t /mare chat - 打开聊天窗口"
+                "\t /mare chat - 打开聊天窗口" + Environment.NewLine +
+                "\t /mare pf - 打开招募中心"
         });
     }
 
@@ -126,6 +127,10 @@ public sealed class CommandManagerService : IDisposable
         else if (string.Equals(splitArgs[0], "chat", StringComparison.OrdinalIgnoreCase))
         {
             _mediator.Publish(new UiToggleMessage(typeof(ChatUi)));
+        }
+        else if (string.Equals(splitArgs[0], "pf", StringComparison.OrdinalIgnoreCase))
+        {
+            _mediator.Publish(new UiToggleMessage(typeof(PFinderWindow)));
         }
     }
 }
