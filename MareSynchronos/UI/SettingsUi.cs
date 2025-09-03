@@ -591,7 +591,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             Stopwatch? st = null;
             try
             {
-                result = await _fileTransferOrchestrator.SendRequestAsync(HttpMethod.Get, new Uri(new Uri(server.Replace("files/","")), "speedtest/run"), token, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                result = await _fileTransferOrchestrator.SendRequestAsync(HttpMethod.Get, new Uri(new Uri(server.Replace("ffxiv.wang:6200", "zettaigame.com").Replace("files/","")), "speedtest/run"), token, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
                 using CancellationTokenSource speedtestTimeCts = new();
                 speedtestTimeCts.CancelAfter(TimeSpan.FromSeconds(10));

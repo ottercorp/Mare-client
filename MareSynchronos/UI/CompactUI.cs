@@ -43,6 +43,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private readonly TopTabMenu _tabMenu;
     private readonly TagHandler _tagHandler;
     private readonly UiSharedService _uiSharedService;
+    private readonly FileTransferOrchestrator  _fileTransferOrchestrator;
     private List<IDrawFolder> _drawFolders;
     private Pair? _lastAddedUser;
     private string _lastAddedUserComment = string.Empty;
@@ -57,7 +58,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager,
         TagHandler tagHandler, DrawEntityFactory drawEntityFactory, SelectTagForPairUi selectTagForPairUi, SelectPairForTagUi selectPairForTagUi,
-        PerformanceCollectorService performanceCollectorService, IpcManager ipcManager)
+        PerformanceCollectorService performanceCollectorService, IpcManager ipcManager, FileTransferOrchestrator fileTransferOrchestrator)
         : base(logger, mediator, "###MareSynchronosMainUI", performanceCollectorService)
     {
         _uiSharedService = uiShared;
@@ -71,6 +72,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         _selectGroupForPairUi = selectTagForPairUi;
         _selectPairsForGroupUi = selectPairForTagUi;
         _ipcManager = ipcManager;
+        _fileTransferOrchestrator = fileTransferOrchestrator;
         _tabMenu = new TopTabMenu(Mediator, _apiController, _pairManager, _uiSharedService);
 
         AllowPinning = false;
@@ -329,6 +331,21 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + shardTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
         }
+
+        if (_apiController.ServerState is ServerState.Connected && _fileTransferOrchestrator.FilesCdnUri?.Host is "mare.zettaigame.com" or "mare.ffxiv.wang")
+        {
+            ImGui.SetCursorPosX(buttonSize.X / 2);
+            var accelerating = _fileTransferOrchestrator.UseCfAccel;
+            using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.GetBoolColor(accelerating)))
+            {
+                if (_uiSharedService.IconButton(FontAwesomeIcon.CloudDownloadAlt))
+                {
+                    _fileTransferOrchestrator.UseCfAccel = !_fileTransferOrchestrator.UseCfAccel;
+                }
+            }
+            UiSharedService.AttachToolTip(accelerating ? "正在使用CF加速, 点击以禁用.": "未使用CF加速, 点击以启用.");
+        }
+
         bool isConnectingOrConnected = _apiController.ServerState is ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting;
         var color = UiSharedService.GetBoolColor(!isConnectingOrConnected);
         var connectedIcon = isConnectingOrConnected ? FontAwesomeIcon.Unlink : FontAwesomeIcon.Link;
