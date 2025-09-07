@@ -2106,7 +2106,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.SameLine();
         if (ImGui.Button("月海同步器/Mare Synchronos Discord"))
         {
-            Util.OpenLink("https://discord.gg/3dwsdrShST");
+            Util.OpenLink("https://discord.gg/usCnZFhEHs");
         }
         ImGui.Separator();
         if (ImGui.BeginTabBar("mainTabBar"))

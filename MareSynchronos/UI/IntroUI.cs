@@ -211,7 +211,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 
             if (ImGui.Button("加入国服月海同步器Discord"))
             {
-                Util.OpenLink("https://discord.gg/3dwsdrShST");
+                Util.OpenLink("https://discord.gg/usCnZFhEHs");
             }
 
             UiSharedService.TextWrapped("如果您要加入非官方服务器，请联系该服务提供商来获取密钥。");
