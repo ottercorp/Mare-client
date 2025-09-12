@@ -79,7 +79,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
     public string AuthFailureMessage { get; private set; } = string.Empty;
 
-    public Version CurrentClientVersion => _connectionDto?.CurrentClientVersion ?? new Version(0, 0, 0);
+    public Version CurrentClientVersion => _connectionDto?.CurrentClientVersion ?? new Version(0, 0, 0, 0);
 
     public DefaultPermissionsDto? DefaultPermissions => _connectionDto?.DefaultPreferredPermissions ?? null;
     public string DisplayName => _connectionDto?.User.AliasOrUID ?? string.Empty;
@@ -252,8 +252,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                     if (_connectionDto.CurrentClientVersion > currentClientVer)
                     {
                         Mediator.Publish(new NotificationMessage("客户端不兼容",
-                            $"你的客户端过旧 ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), 目前版本: " +
-                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
+                            $"你的客户端过旧 ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}).{currentClientVer.Revision}, 目前版本: " +
+                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}.{_connectionDto.CurrentClientVersion.Revision}. " +
                             $"你的客户端版本与服务器不兼容. 请更新Mare.",
                             NotificationType.Error));
                     }
@@ -264,8 +264,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 if (_connectionDto.CurrentClientVersion > currentClientVer)
                 {
                     Mediator.Publish(new NotificationMessage("客户端需要更新",
-                        $"你的客户端过旧 ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), 目前版本: " +
-                        $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
+                        $"你的客户端过旧 ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}.{currentClientVer.Revision}), 目前版本: " +
+                        $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}.{_connectionDto.CurrentClientVersion.Revision}. " +
                         $"请更新Mare.",
                         NotificationType.Warning));
                 }

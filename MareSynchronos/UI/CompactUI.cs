@@ -183,7 +183,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                 ImGui.AlignTextToFramePadding();
                 ImGui.TextColored(ImGuiColors.DalamudRed, unsupported);
             }
-            UiSharedService.ColorTextWrapped($"您安装的月海同步器版本已过期，当前版本为: {ver.Major}.{ver.Minor}.{ver.Build}. " +
+            UiSharedService.ColorTextWrapped($"您安装的月海同步器版本已过期，当前版本为: {ver.Major}.{ver.Minor}.{ver.Build}.{ver.Revision}. " +
                 $"强烈建议更新月海同步器到最新版本。打开插件管理器/xlplugins并更新插件.", ImGuiColors.DalamudRed);
         }
 
