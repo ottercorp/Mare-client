@@ -1051,6 +1051,16 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
 
+        var singleFile = _configService.Current.UseSinlgeFileDownload;
+
+        ImGui.BeginDisabled(_apiController.IsConnected);
+        if (ImGui.Checkbox("使用单文件下载,非必要请勿关闭", ref singleFile))
+        {
+            _configService.Current.UseSinlgeFileDownload = singleFile;
+            _configService.Save();
+        }
+        ImGui.EndDisabled();
+
         if (ImGui.Button("打开功能介绍"))
         {
             Mediator.Publish(new UiToggleMessage(typeof(ChangelogUi)));

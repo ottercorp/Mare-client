@@ -125,7 +125,7 @@ public class PlayerPerformanceService
 
         pair.LastAppliedDataTris = triUsage;
 
-        _logger.LogDebug("Calculated VRAM usage for {p}", pairHandler);
+        _logger.LogDebug("Calculated triangle usage for {p} : {triUsage} k", pairHandler, triUsage / 1000);
 
         // no warning of any kind on ignored pairs
         if (config.UIDsToIgnore
@@ -201,7 +201,7 @@ public class PlayerPerformanceService
 
         pair.LastAppliedApproximateVRAMBytes = vramUsage;
 
-        _logger.LogDebug("Calculated VRAM usage for {p}", pairHandler);
+        _logger.LogDebug("Calculated VRAM usage for {p} : {vramUsage} MB", pairHandler, vramUsage / 1024 / 1024);
 
         // no warning of any kind on ignored pairs
         if (config.UIDsToIgnore

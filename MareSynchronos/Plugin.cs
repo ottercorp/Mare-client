@@ -30,6 +30,9 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using MareSynchronos.Services.CharaData;
 using Dalamud.Game;
+using System.Net;
+using System.Net.Security;
+using System.Security.Authentication;
 
 namespace MareSynchronos;
 
@@ -169,9 +172,24 @@ public sealed class Plugin : IDalamudPlugin
                 notificationManager, chatGui, s.GetRequiredService<MareConfigService>()));
             collection.AddSingleton((s) =>
             {
-                var httpClient = new HttpClient();
+                var handler = new SocketsHttpHandler
+                {
+                    PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+                    PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+                    MaxConnectionsPerServer = 15,
+                    EnableMultipleHttp2Connections = true,
+                    SslOptions = {
+                        EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                        ApplicationProtocols = new List<SslApplicationProtocol> {
+                            SslApplicationProtocol.Http2, SslApplicationProtocol.Http11
+                        }
+                    }
+                };
+
+                var httpClient = new HttpClient(handler);
+                httpClient.DefaultRequestVersion = HttpVersion.Version20;
                 var ver = Assembly.GetExecutingAssembly().GetName().Version;
-                httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("MareSynchronos", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
+                httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("MareSynchronos", ver!.Major + "." + ver!.Minor + "." + ver!.Build + "." + ver!.Revision));
                 return httpClient;
             });
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));

@@ -24,7 +24,7 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
 
     private Uri? FilesCdn = null;
     private readonly Uri? NotCFUri = new Uri("http://mare.ffxiv.wang:6200/files/");
-    private readonly Uri? CFUri = new Uri("http://mare.zettaigame.com/files/");
+    private readonly Uri? CFUri = new Uri("https://mare.zettaigame.com/files/");
     public bool UseCfAccel = true;
 
     public FileTransferOrchestrator(ILogger<FileTransferOrchestrator> logger, MareConfigService mareConfig,
@@ -47,8 +47,6 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
         _mareConfig = mareConfig;
         _tokenProvider = tokenProvider;
         _httpClient = httpClient;
-        var ver = Assembly.GetExecutingAssembly().GetName().Version;
-        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("MareSynchronos", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
 
         _availableDownloadSlots = mareConfig.Current.ParallelDownloads;
         _downloadSemaphore = new(_availableDownloadSlots, _availableDownloadSlots);
@@ -184,6 +182,12 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
 
         try
         {
+            if (requestMessage.RequestUri.Scheme != Uri.UriSchemeHttp)
+            {
+                requestMessage.Version = HttpVersion.Version20;
+                requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+            }
+
             if (ct != null)
                 return await _httpClient.SendAsync(requestMessage, httpCompletionOption, ct.Value).ConfigureAwait(false);
             return await _httpClient.SendAsync(requestMessage, httpCompletionOption).ConfigureAwait(false);
