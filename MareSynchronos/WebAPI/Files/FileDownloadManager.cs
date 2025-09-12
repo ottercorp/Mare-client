@@ -350,7 +350,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             {
                 DownloadStatus = DownloadStatus.Initializing,
                 TotalBytes = downloadGroup.Sum(c => c.Total),
-                TotalFiles = _mareConfig.Current.UseSinlgeFileDownload ? downloadGroup.Count() : 1,
+                TotalFiles = _mareConfig.Current.UseSinlgeFileDownload && _orchestrator.UseCfAccel ? downloadGroup.Count() : 1,
                 TransferredBytes = 0,
                 TransferredFiles = 0
             };
@@ -407,7 +407,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     }
                 });
 
-                if (_mareConfig.Current.UseSinlgeFileDownload)
+                if (_mareConfig.Current.UseSinlgeFileDownload && _orchestrator.UseCfAccel)
                 {
                     await DownloadAndMungeSingleFileHttpClient(fileGroup.Key, requestId, [.. fileGroup], blockFile, progress, fileProgress, token).ConfigureAwait(false);
                 }
