@@ -102,9 +102,13 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
     }
 
     public async Task<HttpResponseMessage> SendRequestAsync(HttpMethod method, Uri uri,
-        CancellationToken? ct = null, HttpCompletionOption httpCompletionOption = HttpCompletionOption.ResponseContentRead)
+        CancellationToken? ct = null, HttpCompletionOption httpCompletionOption = HttpCompletionOption.ResponseContentRead, Guid? requestId = null)
     {
         using var requestMessage = new HttpRequestMessage(method, uri);
+        if (requestId != null)
+        {
+            requestMessage.Headers.TryAddWithoutValidation("X-Request-ID", requestId.ToString());
+        }
         return await SendRequestInternalAsync(requestMessage, ct, httpCompletionOption).ConfigureAwait(false);
     }
 

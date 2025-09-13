@@ -235,6 +235,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             mainFileStream = File.Create(tempPath);
             await using (mainFileStream.ConfigureAwait(false))
             {
+                Logger.LogDebug("Downloading for request {id}", requestId);
                 foreach (DownloadFileTransfer transfer in fileTransfer)
                 {
                     HttpResponseMessage? response = null;
@@ -242,11 +243,9 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
                     try
                     {
-                        var requestUrl = MareFiles.CacheGetSingleFullPath(transfer.DownloadUri, requestId, transfer.Hash);
+                        var requestUrl = MareFiles.CacheGetSingleFullPath(transfer.DownloadUri, transfer.Hash);
 
-                        Logger.LogDebug("Downloading {requestUrl} for request {id}", requestUrl, requestId);
-
-                        response = await _orchestrator.SendRequestAsync(HttpMethod.Get, requestUrl, ct, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                        response = await _orchestrator.SendRequestAsync(HttpMethod.Get, requestUrl, ct, HttpCompletionOption.ResponseHeadersRead, requestId).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
 
                         var bufferSize = response.Content.Headers.ContentLength > 1024 * 1024 ? 65536 : 8196;
@@ -434,7 +433,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             {
                 if (_downloadStatus.TryGetValue(fileGroup.Key, out var status))
                 {
-                    status.TransferredFiles = 1;
+                    //status.TransferredFiles = 1;
                     status.DownloadStatus = DownloadStatus.Decompressing;
                 }
 
