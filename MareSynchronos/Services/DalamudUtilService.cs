@@ -49,9 +49,13 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
     private readonly List<string> _notUpdatedCharas = [];
     private bool _sentBetweenAreas = false;
     private Lazy<ulong> _cid;
+    private readonly ISigScanner _sigScanner;
+    private readonly Dictionary<ulong, string> _aidCache = [];
+    private Lazy<uint> _aid;
+    private int _aidCounter = 0;
 
     public DalamudUtilService(ILogger<DalamudUtilService> logger, IClientState clientState, IObjectTable objectTable, IFramework framework,
-        IGameGui gameGui, ICondition condition, IDataManager gameData, ITargetManager targetManager, IGameConfig gameConfig,
+        IGameGui gameGui, ICondition condition, IDataManager gameData, ITargetManager targetManager, IGameConfig gameConfig, ISigScanner sigScanner,
         BlockedCharacterHandler blockedCharacterHandler, MareMediator mediator, PerformanceCollectorService performanceCollector)
     {
         _logger = logger;
@@ -65,15 +69,16 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         _blockedCharacterHandler = blockedCharacterHandler;
         Mediator = mediator;
         _performanceCollector = performanceCollector;
+        _sigScanner = sigScanner;
         WorldData = new(() =>
         {
-            return gameData.GetExcelSheet<Lumina.Excel.Sheets.World>(Dalamud.Game.ClientLanguage.ChineseSimplified)!
+            return gameData.GetExcelSheet<Lumina.Excel.Sheets.World>()!
                 .Where(w => !w.Name.IsEmpty && w.DataCenter.RowId != 0 && (w.IsPublic || char.IsUpper(w.Name.ToString()[0])) || w is { Region:2, RowId: >= 1000, UserType: 101})
                 .ToDictionary(w => (ushort)w.RowId, w => w.Name.ToString());
         });
         JobData = new(() =>
         {
-            return gameData.GetExcelSheet<ClassJob>(Dalamud.Game.ClientLanguage.ChineseSimplified)!
+            return gameData.GetExcelSheet<ClassJob>()!
                 .ToDictionary(k => k.RowId, k => k.NameEnglish.ToString());
         });
         TerritoryData = new(() =>
@@ -127,30 +132,31 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         });
         IsWine = Util.IsWine();
         _cid = RebuildCID();
+        //_aid = RebuildAid();
     }
 
-    private Lazy<uint> RebuildAid() {
-        return new(() =>
-        {
-            unsafe
-            {
-                var result = FFXIVClientStructs.FFXIV.Client.System.Framework.GameWindow.Instance()->GetAid();
-                var address = _sigScanner.GetStaticAddressFromSig("48 8B 0D ?? ?? ?? ?? 4C 8B CA");
-
-                if (result == 0)
-                {
-                    result = address != nint.Zero ? (*(ulong**)address)[1] : 0u;
-                }
-#if DEBUG
-                _logger.LogWarning("Got Aid from GameWindow = {result},static address  = {staticAddress}",
-                    result.ToString("X"),
-                    (address != nint.Zero ? (*(ulong**)address)[1] : 0u).ToString("X"));
-                _logger.LogWarning($"{ FFXIVClientStructs.FFXIV.Client.System.Framework.GameWindow.Addresses.Instance.Value:X}");
-#endif
-                return (uint)result;
-            }
-        });
-    }
+//     private Lazy<uint> RebuildAid() {
+//         return new(() =>
+//         {
+//             unsafe
+//             {
+//                 var result = FFXIVClientStructs.FFXIV.Client.System.Framework.GameWindow.Instance()->GetAid();
+//                 var address = _sigScanner.GetStaticAddressFromSig("48 8B 0D ?? ?? ?? ?? 4C 8B CA");
+//
+//                 if (result == 0)
+//                 {
+//                     result = address != nint.Zero ? (*(ulong**)address)[1] : 0u;
+//                 }
+// #if DEBUG
+//                 _logger.LogWarning("Got Aid from GameWindow = {result},static address  = {staticAddress}",
+//                     result.ToString("X"),
+//                     (address != nint.Zero ? (*(ulong**)address)[1] : 0u).ToString("X"));
+//                 _logger.LogWarning($"{ FFXIVClientStructs.FFXIV.Client.System.Framework.GameWindow.Addresses.Instance.Value:X}");
+// #endif
+//                 return (uint)result;
+//             }
+//         });
+//     }
     private Lazy<ulong> RebuildCID() =>  new(GetCID);
 
     public bool IsWine { get; init; }
@@ -349,23 +355,23 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         return await RunOnFrameworkThread(() => _cid.Value.ToString().GetHash256()).ConfigureAwait(false);
     }
 
-    private unsafe static string GetHashedCIDFromPlayerPointer(nint ptr)
+    private unsafe string GetHashedCIDFromPlayerPointer(nint ptr)
     {
-        if (ptr == nint.Zero) return "UNK" + _aidCounter++;
-        var aid = ((BattleChara*)ptr)->Character.AccountId;
-        if (!_aidCache.TryGetValue(aid, out string? hash))
-        {
-            var player = GetPlayerCharacter();
-            if (player == null) return "UNK" + _aidCounter++;
-            _aidCache[aid] = hash = unchecked((uint)(((((BattleChara*)player.Address)->Character.AccountId ^ aid) >> 31) ^ _aid.Value)).ToString().GetHash256();
-#if DEBUG
-            _logger.LogWarning("Logged player {playerName} with aid {aid}", ((BattleChara*)ptr)->Character.GetName().ExtractText(), unchecked((uint)(((((BattleChara*)player.Address)->Character.AccountId ^ aid) >> 31) ^ _aid.Value)).ToString("X"));
-#endif
-        }
-        return hash;
+//         if (ptr == nint.Zero) return "UNK" + _aidCounter++;
+//         var aid = ((BattleChara*)ptr)->Character.AccountId;
+//         if (!_aidCache.TryGetValue(aid, out string? hash))
+//         {
+//             var player = GetPlayerCharacter();
+//             if (player == null) return "UNK" + _aidCounter++;
+//             _aidCache[aid] = hash = unchecked((uint)(((((BattleChara*)player.Address)->Character.AccountId ^ aid) >> 31) ^ _aid.Value)).ToString().GetHash256();
+// #if DEBUG
+//             _logger.LogWarning("Logged player {playerName} with aid {aid}", ((BattleChara*)ptr)->Character.GetName().ExtractText(), unchecked((uint)(((((BattleChara*)player.Address)->Character.AccountId ^ aid) >> 31) ^ _aid.Value)).ToString("X"));
+// #endif
+//         }
+//         return hash;
 
 
-        //return ((BattleChara*)ptr)->Character.ContentId.ToString().GetHash256();
+        return ((BattleChara*)ptr)->Character.ContentId.ToString().GetHash256();
     }
 
     public IntPtr GetPlayerPtr()

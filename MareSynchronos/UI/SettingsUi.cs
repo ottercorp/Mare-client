@@ -236,7 +236,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _lastTab = "Transfers";
         _uiShared.BigText("代理设置");
         LoadProxyConfig();
-        ImGuiHelpers.SafeTextColoredWrapped(ImGuiColors.DalamudRed, "设置 Mare 所使用的网络代理,会影响到文件同步的连接,保存后重启插件生效");
+        ImGui.TextColoredWrapped(ImGuiColors.DalamudRed, "设置 Mare 所使用的网络代理,会影响到文件同步的连接,保存后重启插件生效");
         if (ImGui.Checkbox("手动配置代理", ref this.useManualProxy))
         {
             _configService.Current.UseManualProxy = this.useManualProxy;
@@ -244,7 +244,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         if (this.useManualProxy)
         {
-            ImGuiHelpers.SafeTextColoredWrapped(ImGuiColors.DalamudGrey, "在更改下方选项时，请确保你知道你在做什么，否则不要随便更改。");
+            ImGui.TextColoredWrapped(ImGuiColors.DalamudGrey, "在更改下方选项时，请确保你知道你在做什么，否则不要随便更改。");
             ImGui.Text("协议");
             ImGui.SameLine();
             if (ImGui.Combo("##proxyProtocol", ref this.proxyProtocolIndex, this.proxyProtocols, this.proxyProtocols.Length))

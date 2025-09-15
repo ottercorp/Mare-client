@@ -1,10 +1,9 @@
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Colors;
-using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using ImGuiNET;
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Enum;
 using MareSynchronos.API.Dto.Group;
@@ -27,7 +26,6 @@ namespace MareSynchronos.UI
         private readonly UiSharedService _uiShared;
         private readonly ApiController _apiController;
         private readonly IChatGui _chatGui;
-        private readonly IDalamudPluginInterface _pluginInterface;
         private readonly DalamudLinkPayload _pfinderChatLinkPayload;
         private readonly ushort[] colors = new ushort[] { 1, 17, 25, 37, 43, 48, 524 };
 
@@ -44,14 +42,13 @@ namespace MareSynchronos.UI
 
         public PFinderWindow(ILogger<PFinderWindow> logger, MareConfigService configService, MareMediator mareMediator,
             PerformanceCollectorService performanceCollectorService, ApiController apiController, IChatGui chatGui,
-            IDalamudPluginInterface pluginInterface, UiSharedService uiShared) : base(logger, mareMediator, "招募中心", performanceCollectorService)
+            UiSharedService uiShared) : base(logger, mareMediator, "招募中心", performanceCollectorService)
         {
             _configService = configService;
             _apiController = apiController;
             _chatGui = chatGui;
-            _pluginInterface = pluginInterface;
             _uiShared = uiShared;
-            _pfinderChatLinkPayload = pluginInterface.AddChatLinkHandler(369852, OnPfinderLinkClicked);
+            _pfinderChatLinkPayload = _chatGui.AddChatLinkHandler(369852, OnPfinderLinkClicked);
             IsOpen = false;
             ShowCloseButton = true;
             RespectCloseHotkey = false;
@@ -189,7 +186,7 @@ namespace MareSynchronos.UI
                 cts.Cancel();
             }
             _chatGui.ChatMessage -= ChatGuiOnChatMessage;
-            _pluginInterface.RemoveChatLinkHandler(369852);
+            _chatGui.RemoveChatLinkHandler(369852);
             base.Dispose(disposing);
         }
 
@@ -302,7 +299,7 @@ namespace MareSynchronos.UI
                     //    - 传入 ImGuiInputTextFlags.ReadOnly
                     ImGui.InputTextMultiline("##desc_text" + pf.Guid,
                         ref descriptionText,
-                        (uint)descriptionText.Length + 1, // MaxLength，在只读模式下不重要
+                        descriptionText.Length + 1, // MaxLength，在只读模式下不重要
                         ImGui.GetContentRegionAvail(),
                         ImGuiInputTextFlags.ReadOnly);
 

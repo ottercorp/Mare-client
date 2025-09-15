@@ -1,6 +1,6 @@
-﻿using Dalamud.Interface;
+﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using ImGuiNET;
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Enum;
 using MareSynchronos.API.Dto.Group;
@@ -92,7 +92,7 @@ public class PFinderPopupHandler : IPopupHandler
                 //    - 传入 ImGuiInputTextFlags.ReadOnly
                 ImGui.InputTextMultiline("##desc_text" + pf.Guid,
                     ref descriptionText,
-                    (uint)descriptionText.Length + 1, // MaxLength，在只读模式下不重要
+                    descriptionText.Length + 1, // MaxLength，在只读模式下不重要
                     ImGui.GetContentRegionAvail(),
                     ImGuiInputTextFlags.ReadOnly);
 

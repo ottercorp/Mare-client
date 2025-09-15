@@ -138,7 +138,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton((s) => new EventAggregator(pluginInterface.ConfigDirectory.FullName,
                 s.GetRequiredService<ILogger<EventAggregator>>(), s.GetRequiredService<MareMediator>()));
             collection.AddSingleton((s) => new DalamudUtilService(s.GetRequiredService<ILogger<DalamudUtilService>>(),
-                clientState, objectTable, framework, gameGui, condition, gameData, targetManager, gameConfig,
+                clientState, objectTable, framework, gameGui, condition, gameData, targetManager, gameConfig, sigScanner,
                 s.GetRequiredService<BlockedCharacterHandler>(), s.GetRequiredService<MareMediator>(), s.GetRequiredService<PerformanceCollectorService>()));
             collection.AddSingleton((s) => new DtrEntry(s.GetRequiredService<ILogger<DtrEntry>>(), dtrBar, s.GetRequiredService<MareConfigService>(),
                 s.GetRequiredService<MareMediator>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<ApiController>()));
@@ -231,7 +231,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<WindowMediatorSubscriberBase, ChatUi>();
             collection.AddScoped<WindowMediatorSubscriberBase, PFinderWindow>((s) => new PFinderWindow(s.GetRequiredService<ILogger<PFinderWindow>>(),
                 s.GetRequiredService<MareConfigService>(), s.GetRequiredService<MareMediator>(), s.GetRequiredService<PerformanceCollectorService>(),
-                s.GetRequiredService<ApiController>(), chatGui, pluginInterface, s.GetRequiredService<UiSharedService>()));
+                s.GetRequiredService<ApiController>(), chatGui, s.GetRequiredService<UiSharedService>()));
             collection.AddScoped<WindowMediatorSubscriberBase, ChangelogUi>();
 
             collection.AddScoped<WindowMediatorSubscriberBase, EditProfileUi>((s) => new EditProfileUi(s.GetRequiredService<ILogger<EditProfileUi>>(),
