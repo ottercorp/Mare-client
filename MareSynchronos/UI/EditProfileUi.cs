@@ -1,9 +1,9 @@
-﻿using Dalamud.Interface;
+﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
-using ImGuiNET;
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Dto.User;
 using MareSynchronos.Services;
@@ -86,18 +86,15 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
         if (_pfpTextureWrap != null)
         {
-            ImGui.Image(_pfpTextureWrap.ImGuiHandle,
-                ImGuiHelpers.ScaledVector2(_pfpTextureWrap.Width, _pfpTextureWrap.Height));
+            ImGui.Image(_pfpTextureWrap.Handle, ImGuiHelpers.ScaledVector2(_pfpTextureWrap.Width, _pfpTextureWrap.Height));
         }
 
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         ImGuiHelpers.ScaledRelativeSameLine(256, spacing);
         using (_uiSharedService.GameFont.Push())
         {
-            var descriptionTextSize = ImGui.CalcTextSize(profile.Description, 256f);
-            var childFrame =
-                ImGuiHelpers.ScaledVector2(256 + ImGui.GetStyle().WindowPadding.X + ImGui.GetStyle().WindowBorderSize,
-                    256);
+            var descriptionTextSize = ImGui.CalcTextSize(profile.Description, wrapWidth: 256f);
+            var childFrame = ImGuiHelpers.ScaledVector2(256 + ImGui.GetStyle().WindowPadding.X + ImGui.GetStyle().WindowBorderSize, 256);
             if (descriptionTextSize.Y > childFrame.Y)
             {
                 _adjustedForScollBarsOnlineProfile = true;
@@ -205,10 +202,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
         using (_uiSharedService.GameFont.Push())
         {
-            var descriptionTextSizeLocal = ImGui.CalcTextSize(_descriptionText, 256f);
-            var childFrameLocal =
-                ImGuiHelpers.ScaledVector2(256 + ImGui.GetStyle().WindowPadding.X + ImGui.GetStyle().WindowBorderSize,
-                    200);
+            var descriptionTextSizeLocal = ImGui.CalcTextSize(_descriptionText, wrapWidth: 256f);
+            var childFrameLocal = ImGuiHelpers.ScaledVector2(256 + ImGui.GetStyle().WindowPadding.X + ImGui.GetStyle().WindowBorderSize, 200);
             if (descriptionTextSizeLocal.Y > childFrameLocal.Y)
             {
                 _adjustedForScollBarsLocalProfile = true;

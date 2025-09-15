@@ -1,8 +1,6 @@
-﻿using Dalamud.Interface;
-using Dalamud.Interface.Colors;
+using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
-using ImGuiScene;
 using MareSynchronos.API.Dto.Group;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.PlayerData.Pairs;
@@ -23,7 +21,6 @@ public class IdDisplayHandler
     private string _lastMouseOverUid = string.Empty;
     private bool _popupShown = false;
     private DateTime? _popupTime;
-    private TextureWrap? _textureWrap;
 
     public IdDisplayHandler(MareMediator mediator, ServerConfigurationManager serverManager, MareConfigService mareConfigService)
     {
@@ -136,8 +133,6 @@ public class IdDisplayHandler
                     _mediator.Publish(new ProfilePopoutToggle(Pair: null));
                     _lastMouseOverUid = string.Empty;
                     _popupShown = false;
-                    _textureWrap?.Dispose();
-                    _textureWrap = null;
                 }
             }
 
