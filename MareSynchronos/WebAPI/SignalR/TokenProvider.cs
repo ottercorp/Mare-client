@@ -60,22 +60,6 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
             if (!isRenewal)
             {
                 _logger.LogDebug("GetNewToken: Requesting");
-
-                if (!_serverManager.CurrentServer.UseOAuth2)
-                {
-                    tokenUri = MareAuth.AuthFullPath(new Uri(_serverManager.CurrentApiUrl
-                        .Replace("wss://", "https://", StringComparison.OrdinalIgnoreCase)
-                        .Replace("ws://", "http://", StringComparison.OrdinalIgnoreCase)));
-                    var secretKey = _serverManager.GetSecretKey(out _)!;
-                    var auth = secretKey.GetHash256();
-                    _logger.LogInformation("Sending SecretKey Request to server with auth {auth}", string.Join("", identifier.SecretKeyOrOAuth.Take(10)));
-                    result = await _httpClient.PostAsync(tokenUri, new FormUrlEncodedContent(
-                    [
-                            new KeyValuePair<string, string>("auth", auth),
-                            new KeyValuePair<string, string>("charaIdent", await _dalamudUtil.GetPlayerNameHashedAsync().ConfigureAwait(false)),
-                    ]), ct).ConfigureAwait(false);
-                }
-                else
                 {
                     tokenUri = MareAuth.AuthWithOauthFullPath(new Uri(_serverManager.CurrentApiUrl
                         .Replace("wss://", "https://", StringComparison.OrdinalIgnoreCase)
@@ -85,7 +69,8 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
                         new KeyValuePair<string, string>("uid", identifier.UID),
                         new KeyValuePair<string, string>("charaIdent", identifier.CharaHash),
                         new KeyValuePair<string, string>("nameWithWorld", identifier.NameWithWorld),
-                        new KeyValuePair<string, string>("machineId", DalamudUtilService.GetDeviceId().GetHash256())
+                        new KeyValuePair<string, string>("machineId", DalamudUtilService.GetDeviceId().GetHash256()),
+                        new KeyValuePair<string, string>("aidHash",  identifier.AidHash)
                         ]);
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", identifier.SecretKeyOrOAuth);
                     _logger.LogInformation("Sending OAuth Request to server with auth {auth}", string.Join("", identifier.SecretKeyOrOAuth.Take(10)));
@@ -162,7 +147,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
         {
             var playerIdentifier = await _dalamudUtil.GetPlayerNameHashedAsync().ConfigureAwait(false);
             var nameWithWorld = await _dalamudUtil.GetPlayerNameWithWorldAsync().ConfigureAwait(false);
-
+            var aidHash = await _dalamudUtil.GetPlayerAidHashedAsync().ConfigureAwait(false);
             if (string.IsNullOrEmpty(playerIdentifier))
             {
                 _logger.LogTrace("GetIdentifier: PlayerIdentifier was null, returning last identifier {identifier}", _lastJwtIdentifier);
@@ -176,7 +161,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
 
                 jwtIdentifier = new(_serverManager.CurrentApiUrl,
                     playerIdentifier,
-                    UID, OAuthToken, nameWithWorld.GetHash256());
+                    UID, OAuthToken, nameWithWorld.GetHash256(), aidHash);
             }
             else
             {
@@ -187,7 +172,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
                                     playerIdentifier,
                                     string.Empty,
                                     secretKey,
-                                    nameWithWorld.GetHash256());
+                                    nameWithWorld.GetHash256(), aidHash);
             }
             _lastJwtIdentifier = jwtIdentifier;
         }

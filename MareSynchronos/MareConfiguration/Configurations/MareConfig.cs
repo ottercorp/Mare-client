@@ -69,5 +69,4 @@ public class MareConfig : IMareConfiguration
     public int ChatColor { get; set; } = 0;
     public string ChangeLogVersion { get; set; } = string.Empty;
 
-    public bool UseSinlgeFileDownload { get; set; } = true;
 }

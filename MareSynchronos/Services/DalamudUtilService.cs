@@ -132,31 +132,28 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         });
         IsWine = Util.IsWine();
         _cid = RebuildCID();
-        //_aid = RebuildAid();
+        _aid = RebuildAid();
     }
 
-//     private Lazy<uint> RebuildAid() {
-//         return new(() =>
-//         {
-//             unsafe
-//             {
-//                 var result = FFXIVClientStructs.FFXIV.Client.System.Framework.GameWindow.Instance()->GetAid();
-//                 var address = _sigScanner.GetStaticAddressFromSig("48 8B 0D ?? ?? ?? ?? 4C 8B CA");
-//
-//                 if (result == 0)
-//                 {
-//                     result = address != nint.Zero ? (*(ulong**)address)[1] : 0u;
-//                 }
-// #if DEBUG
-//                 _logger.LogWarning("Got Aid from GameWindow = {result},static address  = {staticAddress}",
-//                     result.ToString("X"),
-//                     (address != nint.Zero ? (*(ulong**)address)[1] : 0u).ToString("X"));
-//                 _logger.LogWarning($"{ FFXIVClientStructs.FFXIV.Client.System.Framework.GameWindow.Addresses.Instance.Value:X}");
-// #endif
-//                 return (uint)result;
-//             }
-//         });
-//     }
+    private Lazy<uint> RebuildAid() {
+        return new(() =>
+        {
+            unsafe
+            {
+                var result = FFXIVClientStructs.FFXIV.Client.System.Framework.GameWindow.Instance()->GetAid();
+                var address = _sigScanner.GetStaticAddressFromSig("48 8B 0D ?? ?? ?? ?? 4C 8B CA");
+                var result2 = address != nint.Zero ? (*(ulong**)address)[1] : 0u;
+#if DEBUG
+                _logger.LogWarning($"Aid result: FFCS:{result}, sig:{result2}");
+#endif
+                if (result2 != 0)
+                {
+                    return (uint)result2;
+                }
+                return (uint)result;
+            }
+        });
+    }
     private Lazy<ulong> RebuildCID() =>  new(GetCID);
 
     public bool IsWine { get; init; }
@@ -348,6 +345,11 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         EnsureIsOnFramework();
         var playerChar = GetPlayerCharacter();
         return ((BattleChara*)playerChar.Address)->Character.ContentId;
+    }
+
+    public async Task<string> GetPlayerAidHashedAsync()
+    {
+        return await RunOnFrameworkThread(() => _aid.Value.ToString().GetHash256()).ConfigureAwait(false);
     }
 
     public async Task<string> GetPlayerNameHashedAsync()
@@ -810,6 +812,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
                 IsLoggedIn = true;
                 _lastZone = _clientState.TerritoryType;
                 _cid = RebuildCID();
+                _aid = RebuildAid();
                 Mediator.Publish(new DalamudLoginMessage());
             }
             else if (localPlayer == null && IsLoggedIn)

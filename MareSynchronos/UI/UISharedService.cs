@@ -653,7 +653,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                     }
                     else
                     {
-                        ColorTextWrapped("服务器不支持Discord OAuth2", ImGuiColors.DalamudRed);
+                        ColorTextWrapped("服务器不支持Discord OAuth2 或网络连接失败", ImGuiColors.DalamudRed);
                     }
                 }
             }
@@ -675,7 +675,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                 }
                 else if (_discordOAuthGetCode != null && _discordOAuthGetCode.IsCompleted)
                 {
-                    TextWrapped("Discord OAuth 完成, 状态: ");
+                    TextWrapped("Discord OAuth2 设置完成, 状态: ");
                     ImGui.SameLine();
                     if (_discordOAuthGetCode?.Result != null)
                     {

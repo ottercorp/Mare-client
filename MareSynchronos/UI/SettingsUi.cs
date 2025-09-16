@@ -1051,16 +1051,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
 
-        var singleFile = _configService.Current.UseSinlgeFileDownload;
-
-        ImGui.BeginDisabled(_apiController.IsConnected);
-        if (ImGui.Checkbox("使用单文件下载,非必要请勿关闭", ref singleFile))
-        {
-            _configService.Current.UseSinlgeFileDownload = singleFile;
-            _configService.Save();
-        }
-        ImGui.EndDisabled();
-
         if (ImGui.Button("打开功能介绍"))
         {
             Mediator.Publish(new UiToggleMessage(typeof(ChangelogUi)));
@@ -1638,20 +1628,20 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     ulong youCid = _dalamudUtilService.GetCID();
                     if (!selectedServer.Authentications.Exists(a => string.Equals(a.CharacterName, youName, StringComparison.Ordinal) && a.WorldId == youWorld))
                     {
-                        _uiShared.BigText("Your Character is not Configured", ImGuiColors.DalamudRed);
-                        UiSharedService.ColorTextWrapped("You have currently no character configured that corresponds to your current name and world.", ImGuiColors.DalamudRed);
+                        _uiShared.BigText("你尚未配置角色", ImGuiColors.DalamudRed);
+                        UiSharedService.ColorTextWrapped("你尚未为你正在使用的角色做好配置.", ImGuiColors.DalamudRed);
                         var authWithCid = selectedServer.Authentications.Find(f => f.LastSeenCID == youCid);
                         if (authWithCid != null)
                         {
                             ImGuiHelpers.ScaledDummy(5);
-                            UiSharedService.ColorText("A potential rename/world change from this character was detected:", ImGuiColors.DalamudYellow);
+                            UiSharedService.ColorText("你可能改名/转区了:", ImGuiColors.DalamudYellow);
                             using (ImRaii.PushIndent(10f))
-                                UiSharedService.ColorText("Entry: " + authWithCid.CharacterName + " - " + _dalamudUtilService.WorldData.Value[(ushort)authWithCid.WorldId], ImGuiColors.ParsedGreen);
-                            UiSharedService.ColorText("Press the button below to adjust that entry to your current character:", ImGuiColors.DalamudYellow);
+                                UiSharedService.ColorText("条目: " + authWithCid.CharacterName + " - " + _dalamudUtilService.WorldData.Value[(ushort)authWithCid.WorldId], ImGuiColors.ParsedGreen);
+                            UiSharedService.ColorText("点击下方按钮为当前角色使用这一条目:", ImGuiColors.DalamudYellow);
                             using (ImRaii.PushIndent(10f))
-                                UiSharedService.ColorText("Current: " + youName + " - " + _dalamudUtilService.WorldData.Value[(ushort)youWorld], ImGuiColors.ParsedGreen);
+                                UiSharedService.ColorText("当前: " + youName + " - " + _dalamudUtilService.WorldData.Value[(ushort)youWorld], ImGuiColors.ParsedGreen);
                             ImGuiHelpers.ScaledDummy(5);
-                            if (_uiShared.IconTextButton(FontAwesomeIcon.ArrowRight, "Update Entry to Current Character"))
+                            if (_uiShared.IconTextButton(FontAwesomeIcon.ArrowRight, "更新条目为当前角色信息"))
                             {
                                 authWithCid.CharacterName = youName;
                                 authWithCid.WorldId = youWorld;
