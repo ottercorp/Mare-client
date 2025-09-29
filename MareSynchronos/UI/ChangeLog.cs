@@ -15,7 +15,6 @@ namespace MareSynchronos.UI
 
         private const string Version = "25-08-15";
 
-        private readonly ILogger<ChangelogUi> _logger;
         private UiSharedService _uiSharedService;
         private MareConfigService _mareConfig;
         private readonly DalamudUtilService _dalamudUtilService;
@@ -30,7 +29,6 @@ namespace MareSynchronos.UI
             _uiSharedService = uiSharedService;
             _mareConfig = mareConfig;
             _dalamudUtilService = dalamudUtilService;
-            _logger = logger;
 
             IsOpen = !string.Equals(_mareConfig.Current.ChangeLogVersion, CalculateHash, StringComparison.OrdinalIgnoreCase);
 

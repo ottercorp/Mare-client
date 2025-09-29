@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Dalamud.NET.Sdk/13.0.0">
+<Project Sdk="Dalamud.NET.Sdk/13.1.0">
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
     <Version>1.13.0.1</Version>
     <Description></Description>
     <Copyright></Copyright>
-    <PackageProjectUrl>https://github.com/Penumbra-Sync/client</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/ottercorp/Mare-client</PackageProjectUrl>
   </PropertyGroup>
 
   <PropertyGroup>

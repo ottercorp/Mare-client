@@ -18,7 +18,6 @@ namespace MareSynchronos.UI
     {
         public static List<string> JoinedGroups = new();
 
-        private readonly ILogger<ChatUi> _logger;
         private UiSharedService _uiSharedService;
         private ApiController _apiController;
         private PairManager _pairManager;
@@ -43,7 +42,6 @@ namespace MareSynchronos.UI
             _idDisplayHandler = idDisplayHandler;
             _mareConfig = mareConfig;
             _notificationService = notificationService;
-            _logger = logger;
 
             Mediator.Subscribe<ChatMessage>(this, HandleChatMessage);
             mediator.Subscribe<OpenChatUi>(this, _ => IsOpen = true);
@@ -65,7 +63,6 @@ namespace MareSynchronos.UI
             {
                 _chatLogs.RemoveAt(_chatLogs.FindIndex(x => x.Group.GID == msg.Group.GID));
             }
-            _logger.LogDebug($"Received chat message: '{msg.Message}' from {msg.Sender.AliasOrUID} in group {msg.Group.AliasOrGID}");
             // 若 ChatTwo 已连接，则不再将聊天输出到默认聊天框，避免重复
             if (_mareConfig.Current.PortToChatGui && !_uiSharedService.ChatTwoExists)
             {
