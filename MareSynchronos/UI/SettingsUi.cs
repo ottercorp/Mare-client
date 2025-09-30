@@ -7,6 +7,7 @@ using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Comparer;
+using MareSynchronos.API.Data.Extensions;
 using MareSynchronos.API.Routes;
 using MareSynchronos.FileCache;
 using MareSynchronos.Interop.Ipc;
@@ -723,6 +724,27 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         _uiShared.DrawHelpText("无论是否打开本选项都会将你的Log标记为UNSUPPORTED, 你将不会接受到管理们的帮助." + UiSharedService.TooltipSeparator
             + "打开细节层次可能导致游戏崩溃.");
+#if DEBUG
+
+        if (ImGui.TreeNode("Test###DEBUG"))
+        {
+            foreach (Pair onlineUserPair in _pairManager.GetOnlineUserPairs())
+            {
+                if (onlineUserPair.UserPair.OtherPermissions.IsEnabledShareLocation())
+                {
+                    var address = _apiController.GetUserLocation(onlineUserPair.UserData.UID);
+                    if (string.IsNullOrEmpty(address)) continue;
+
+                    ImGui.TextUnformatted($"{onlineUserPair.UserData.AliasOrUID} : {address}");
+                }
+            }
+
+            ImGui.TreePop();
+        }
+
+
+
+#endif
     }
 
     private void DrawFileStorageSettings()

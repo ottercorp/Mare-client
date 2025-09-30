@@ -113,15 +113,18 @@ public class DrawFolderGroup : DrawFolderBase
         bool disableSounds = perm.IsDisableSounds();
         bool disableAnims = perm.IsDisableAnimations();
         bool disableVfx = perm.IsDisableVFX();
+        bool shareLocation = perm.IsSharingLocatio();
 
         if ((_groupFullInfoDto.GroupPermissions.IsPreferDisableAnimations() != disableAnims
             || _groupFullInfoDto.GroupPermissions.IsPreferDisableSounds() != disableSounds
-            || _groupFullInfoDto.GroupPermissions.IsPreferDisableVFX() != disableVfx)
+            || _groupFullInfoDto.GroupPermissions.IsPreferDisableVFX() != disableVfx
+            || shareLocation)
             && _uiSharedService.IconTextButton(FontAwesomeIcon.Check, "设为推荐权限", menuWidth, true))
         {
             perm.SetDisableVFX(_groupFullInfoDto.GroupPermissions.IsPreferDisableVFX());
             perm.SetDisableSounds(_groupFullInfoDto.GroupPermissions.IsPreferDisableSounds());
             perm.SetDisableAnimations(_groupFullInfoDto.GroupPermissions.IsPreferDisableAnimations());
+            perm.SetShareLocation(false);
             _ = _apiController.GroupChangeIndividualPermissionState(new(_groupFullInfoDto.Group, new(_apiController.UID), perm));
             ImGui.CloseCurrentPopup();
         }
@@ -143,6 +146,13 @@ public class DrawFolderGroup : DrawFolderBase
         if (_uiSharedService.IconTextButton(disableVfx ? FontAwesomeIcon.Sun : FontAwesomeIcon.Circle, disableVfx ? "启用VFX同步" : "禁用VFX同步", menuWidth, true))
         {
             perm.SetDisableVFX(!disableVfx);
+            _ = _apiController.GroupChangeIndividualPermissionState(new(_groupFullInfoDto.Group, new(_apiController.UID), perm));
+            ImGui.CloseCurrentPopup();
+        }
+
+        if (_uiSharedService.IconTextButton(shareLocation ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Globe, !shareLocation ? "启用位置共享" : "禁用位置共享", menuWidth, true))
+        {
+            perm.SetShareLocation(!shareLocation);
             _ = _apiController.GroupChangeIndividualPermissionState(new(_groupFullInfoDto.Group, new(_apiController.UID), perm));
             ImGui.CloseCurrentPopup();
         }

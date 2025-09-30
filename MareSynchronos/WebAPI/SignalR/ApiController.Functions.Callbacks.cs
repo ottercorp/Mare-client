@@ -270,6 +270,13 @@ public partial class ApiController
         return Task.CompletedTask;
     }
 
+    public Task Client_SendLocationToClient(LocationDto locationDto)
+    {
+        Logger.LogDebug($"{nameof(Client_SendLocationToClient)}: {locationDto.user}");
+        ExecuteSafely(() => Mediator.Publish(new LocationMeaasge(locationDto.user.UID, locationDto.location)));
+        return Task.CompletedTask;
+    }
+
     public Task Client_MoodlesShare(MoodlesDto moodlesDto)
     {
         switch (moodlesDto.Action)
@@ -466,6 +473,12 @@ public partial class ApiController
     {
         if (_initialized) return;
         _mareHub!.On(nameof(Client_MoodlesShare), act);
+    }
+
+    public void OnReciveLocation(Action<LocationDto> act)
+    {
+        if (_initialized) return;
+        _mareHub!.On(nameof(Client_SendLocationToClient), act);
     }
 
     private void ExecuteSafely(Action act)

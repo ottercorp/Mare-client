@@ -1,4 +1,5 @@
-﻿using MareSynchronos.API.Dto.Group;
+﻿using MareSynchronos.API.Data.Enum;
+using MareSynchronos.API.Dto.Group;
 using MareSynchronos.API.Dto.User;
 using MareSynchronos.WebAPI.SignalR.Utils;
 using Microsoft.AspNetCore.SignalR.Client;

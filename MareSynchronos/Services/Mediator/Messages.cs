@@ -109,5 +109,8 @@ public record OpenChatUi():MessageBase;
 public record OpenPFinderPopupMessage(PFinderDto dto) : MessageBase;
 
 public record OpenPfinderWindowMessage(string Fliter) : MessageBase;
+
+public record LocationMeaasge(string Uid, LocationInfo LocationInfo) : MessageBase;
+
 #pragma warning restore S2094
 #pragma warning restore MA0048 // File name must match type name

@@ -83,6 +83,18 @@ public partial class ApiController
         }
     }
 
+    public async Task UpdateLocation(LocationDto locationDto, bool offline)
+    {
+        if (!IsConnected) return;
+        await _mareHub!.SendAsync(nameof(UpdateLocation), locationDto, offline).ConfigureAwait(false);
+    }
+
+    public async Task<List<LocationDto>> RequestLocationInfo()
+    {
+        if (!IsConnected) return [];
+        return await _mareHub!.InvokeAsync<List<LocationDto>>(nameof(RequestLocationInfo)).ConfigureAwait(false);
+    }
+
     public async Task UserRemovePair(UserDto userDto)
     {
         if (!IsConnected) return;

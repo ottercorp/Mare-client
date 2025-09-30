@@ -44,6 +44,7 @@ public class PermissionWindowUI : WindowMediatorSubscriberBase
         var disableSounds = _ownPermissions.IsDisableSounds();
         var disableAnimations = _ownPermissions.IsDisableAnimations();
         var disableVfx = _ownPermissions.IsDisableVFX();
+        var shareLocation = _ownPermissions.IsEnabledShareLocation();
         var style = ImGui.GetStyle();
         var indentSize = ImGui.GetFrameHeight() + style.ItemSpacing.X;
 
@@ -71,6 +72,7 @@ public class PermissionWindowUI : WindowMediatorSubscriberBase
         var otherDisableSounds = otherPerms.IsDisableSounds();
         var otherDisableAnimations = otherPerms.IsDisableAnimations();
         var otherDisableVFX = otherPerms.IsDisableVFX();
+        var otherShareLocation = otherPerms.IsEnabledShareLocation();
 
         using (ImRaii.PushIndent(indentSize, false))
         {
@@ -126,6 +128,25 @@ public class PermissionWindowUI : WindowMediatorSubscriberBase
             ImGui.Text(Pair.UserData.AliasOrUID + " 与你 " + (!otherDisableVFX ? "未 " : string.Empty) + "暂停VFX同步");
         }
 
+        if (ImGui.Checkbox("开启位置共享", ref shareLocation))
+        {
+            _ownPermissions.SetShareLocation(shareLocation);
+        }
+        _uiSharedService.DrawHelpText("这将开启与目标用户的位置共享." + UiSharedService.TooltipSeparator
+                                                           + "注意: 这仅会影响你自己对对方的共享.");
+        using (ImRaii.PushIndent(indentSize, false))
+        {
+            _uiSharedService.BooleanToColoredIcon(shareLocation, false);
+            ImGui.SameLine();
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text((!shareLocation ? "未" : string.Empty) + "与 " + Pair.UserData.AliasOrUID + " 共享位置");
+
+            #if DEBUG
+            _uiSharedService.BooleanToColoredIcon(otherShareLocation, true);
+            #endif
+        }
+
+
         ImGuiHelpers.ScaledDummy(0.5f);
         ImGui.Separator();
         ImGuiHelpers.ScaledDummy(0.5f);
@@ -167,6 +188,7 @@ public class PermissionWindowUI : WindowMediatorSubscriberBase
             _ownPermissions.SetDisableVFX(Pair.IsDirectlyPaired ? defaultPermissions.DisableIndividualVFX : defaultPermissions.DisableGroupVFX);
             _ownPermissions.SetDisableSounds(Pair.IsDirectlyPaired ? defaultPermissions.DisableIndividualSounds : defaultPermissions.DisableGroupSounds);
             _ownPermissions.SetDisableAnimations(Pair.IsDirectlyPaired ? defaultPermissions.DisableIndividualAnimations : defaultPermissions.DisableGroupAnimations);
+            _ownPermissions.SetShareLocation(false);
             _ = _apiController.SetBulkPermissions(new(
                 new(StringComparer.Ordinal)
                 {

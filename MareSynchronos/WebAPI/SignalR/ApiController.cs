@@ -2,6 +2,7 @@
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Extensions;
 using MareSynchronos.API.Dto;
+using MareSynchronos.API.Dto.CharaData;
 using MareSynchronos.API.Dto.User;
 using MareSynchronos.API.SignalR;
 using MareSynchronos.Interop.Ipc;
@@ -42,6 +43,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     private ServerState _serverState;
     private CensusUpdateMessage? _lastCensus;
     private IpcManager _ipcManager;
+    private Dictionary<string, LocationInfo> _locations = [];
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, DalamudUtilService dalamudUtil,
         PairManager pairManager, ServerConfigurationManager serverManager, MareMediator mediator,
@@ -68,6 +70,17 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         Mediator.Subscribe<MoodlesApplyStatusToPair>(this, (msg) => ApplyMoodlesToUsers(msg.StatusDto));
         Mediator.Subscribe<UpdateSupportersMessage>(this, (msg) => UpdateSupporters(msg.SupporterDto.Supporters));
         Mediator.Subscribe<MoodlesShareMessage>(this, HandleMoodlesMessage);
+
+        Mediator.Subscribe<DisconnectedMessage>(this, (msg) => _locations.Clear());
+        Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
+        {
+            _ = UpdateLocation(new LocationDto(new UserData(UID), _dalamudUtil.GetMapDataAsync().Result), false);
+            _ = RequestAllLocation();
+        } );
+        Mediator.Subscribe<LocationMeaasge>(this, UpdateLocation);
+        Mediator.Subscribe<ZoneSwitchEndMessage>(this,
+            msg => _ = UpdateLocation(new LocationDto(new UserData(UID), _dalamudUtil.GetMapDataAsync().Result), false));
+
 
         ServerState = ServerState.Offline;
 
@@ -473,6 +486,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         OnSupporterUpdate((dto) => _ = Client_UpdateSupporterList(dto));
         OnReceiveGroupChat(dto => _ = Client_GroupChat(dto));
         OnMoodlesShare(dto => _ = Client_MoodlesShare(dto));
+        OnReciveLocation(dto => _ = Client_SendLocationToClient(dto));
 
         _healthCheckTokenSource?.Cancel();
         _healthCheckTokenSource?.Dispose();
@@ -676,6 +690,57 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     {
         var dto = new MoodlesDto(new UserData(UID), msg.Action, msg.Status);
         _ = MoodlesShare(dto);
+    }
+
+    private void UpdateLocation(LocationMeaasge msg)
+    {
+        if (_locations.ContainsKey(msg.Uid) && msg.LocationInfo.ServerId is 0)
+        {
+            _locations.Remove(msg.Uid);
+            return;
+        }
+
+        if ( msg.LocationInfo.ServerId is not 0 && !_locations.TryAdd(msg.Uid, msg.LocationInfo))
+        {
+            _locations[msg.Uid] = msg.LocationInfo;
+        }
+    }
+
+    private async Task RequestAllLocation()
+    {
+        try
+        {
+            var data = await RequestLocationInfo().ConfigureAwait(false);
+            _locations = data.ToDictionary(x => x.user.UID, x => x.location, StringComparer.Ordinal);
+            #if DEBUG
+            foreach (var pair in _locations)
+            {
+                Logger.LogWarning($"{pair.Key}: {pair.Value}");
+            }
+            #endif
+        }
+        catch (Exception e)
+        {
+            Logger.LogError("Location Update error : " + e.Message);
+            throw;
+        }
+    }
+
+    public string GetUserLocation(string uid)
+    {
+        try
+        {
+            if (_locations.TryGetValue(uid, out var location))
+            {
+                return _dalamudUtil.LocationToString(location);
+            }
+            return String.Empty;
+        }
+        catch (Exception e)
+        {
+            Logger.LogError("GetUserLocation error : " + e.Message);
+            throw;
+        }
     }
 }
 #pragma warning restore MA0040

@@ -13,7 +13,7 @@ namespace MareSynchronos.UI
     public class ChangelogUi : WindowMediatorSubscriberBase
     {
 
-        private const string Version = "25-08-15";
+        private const string Version = "25-09-30";
 
         private UiSharedService _uiSharedService;
         private MareConfigService _mareConfig;
@@ -43,7 +43,7 @@ namespace MareSynchronos.UI
         }
 
         private string CalculateHash => (DalamudUtilService.GetDeviceId() + Version).GetHash256();
-        private bool IsRead => (count ^ 0b111) == 0;
+        private bool IsRead => (count ^ 0b1) == 0;
         private float ButtonSize => _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.WindowClose, "关闭");
 
 
@@ -60,50 +60,24 @@ namespace MareSynchronos.UI
             ImGui.Separator();
             if (ImGui.BeginChild("###Content", new Vector2(0, -50)))
             {
-                _uiSharedService.BigText("月海招募");
-                if (ImGui.TreeNodeEx("如何打开###进入招募"))
-                {
-                    UiSharedService.TextWrapped("1. 使用命令 ‘/mare pf’ 打开招募中心");
-                    UiSharedService.TextWrapped($"2. 点击Mare主界面顶端 ");
 
-                    UiSharedService.TextWrapped($" 按钮 打开招募中心");
-                    UiSharedService.TextWrapped("3. 点击聊天框中定期提示的招募状态信息中的 [ 打开月海招募中心 ] 链接");
+                DrawNew();
+                _uiSharedService.BigText("位置共享");
+                if (ImGui.TreeNodeEx("如何打开###howtoopen1"))
+                {
+                    UiSharedService.ColorTextWrapped("该功能默认关闭, 需要手动对单个用户开启/关闭, 或通过同步贝菜单批量操作开关.", ImGuiColors.DalamudYellow);
+                    ImGui.Spacing();
+                    UiSharedService.TextWrapped("你可以从主界面任意已配对玩家的选项菜单（三个点形状的按钮）内选择打开或关闭与其共享自己的位置.");
+                    UiSharedService.TextWrapped("你也可以通同步贝的选项菜单（同上） 来快速打开/关闭对该贝内所有用户的位置共享.");
+                    UiSharedService.TextWrapped("请注意通过同步贝进行操作无法覆盖你手动设置独立配置的配对角色.");
+                    ImGui.Spacing();
+                    UiSharedService.TextWrapped("打开共享后会在主界面显示对应图标, 鼠标悬浮即可查看对方位置以及自己的位置共享情况");
+                    ImGui.Spacing();
                     DrawReadButton(0);
                     ImGui.TreePop();
                 }
-
-                DrawNew();
-                UiSharedService.TextWrapped("招募提示消息现在会跟随游戏原生招募提示同步出现(除登录首次)，请自行修改游戏提示间隔.");
-
                 ImGui.Separator();
 
-                _uiSharedService.BigText("同步贝聊天");
-                if (ImGui.TreeNodeEx("如何使用###进入聊天"))
-                {
-                    UiSharedService.TextWrapped("1. 使用命令 ‘/mare chat’ - 打开聊天框\n  '/mare r' - 回复上一个同步贝聊天\n  '/mare 同步贝名' - 回复特定同步贝聊天");
-                    UiSharedService.TextWrapped($"2. 点击Mare主界面顶端 ");
-                    ImGui.SameLine();
-                    _uiSharedService.IconText(FontAwesomeIcon.Blog);
-                    ImGui.SameLine();
-                    UiSharedService.TextWrapped($"按钮 打开聊天框");
-                    UiSharedService.TextWrapped($"3. 点击对应群组右侧 ");
-                    ImGui.SameLine();
-                    _uiSharedService.IconText(FontAwesomeIcon.EllipsisV);
-                    ImGui.SameLine();
-                    UiSharedService.TextWrapped($" 按钮, 加入对应群组的聊天");
-                    UiSharedService.ColorTextWrapped("注意：贝的拥有者需要在 '同步贝设置' 中打开贝聊天功能才能使用", ImGuiColors.DalamudYellow);
-                    DrawReadButton(1);
-                    ImGui.TreePop();
-                }
-                if (ImGui.TreeNodeEx("修改配置###聊天设置"))
-                {
-                    UiSharedService.TextWrapped("1. 在设置界面 - UI - 国服特供部分修改相关设置");
-                    UiSharedService.ColorTextWrapped("提供了Chat2集成, 默认开启", ImGuiColors.ParsedBlue);
-                    DrawReadButton(2);
-                    ImGui.TreePop();
-                }
-
-                ImGui.Separator();
             }
 
             if (!IsRead)

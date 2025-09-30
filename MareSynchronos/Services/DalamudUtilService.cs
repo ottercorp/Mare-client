@@ -54,9 +54,12 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
     private Lazy<uint> _aid;
     private int _aidCounter = 0;
 
-    public DalamudUtilService(ILogger<DalamudUtilService> logger, IClientState clientState, IObjectTable objectTable, IFramework framework,
-        IGameGui gameGui, ICondition condition, IDataManager gameData, ITargetManager targetManager, IGameConfig gameConfig, ISigScanner sigScanner,
-        BlockedCharacterHandler blockedCharacterHandler, MareMediator mediator, PerformanceCollectorService performanceCollector)
+    public DalamudUtilService(ILogger<DalamudUtilService> logger, IClientState clientState, IObjectTable objectTable,
+        IFramework framework,
+        IGameGui gameGui, ICondition condition, IDataManager gameData, ITargetManager targetManager,
+        IGameConfig gameConfig, ISigScanner sigScanner,
+        BlockedCharacterHandler blockedCharacterHandler, MareMediator mediator,
+        PerformanceCollectorService performanceCollector)
     {
         _logger = logger;
         _clientState = clientState;
@@ -73,7 +76,9 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         WorldData = new(() =>
         {
             return gameData.GetExcelSheet<Lumina.Excel.Sheets.World>()!
-                .Where(w => !w.Name.IsEmpty && w.DataCenter.RowId != 0 && (w.IsPublic || char.IsUpper(w.Name.ToString()[0])) || w is { Region:2, RowId: >= 1000, UserType: 101})
+                .Where(w => !w.Name.IsEmpty && w.DataCenter.RowId != 0 &&
+                            (w.IsPublic || char.IsUpper(w.Name.ToString()[0])) ||
+                            w is { Region: 2, RowId: >= 1000, UserType: 101 })
                 .ToDictionary(w => (ushort)w.RowId, w => w.Name.ToString());
         });
         JobData = new(() =>
@@ -84,41 +89,52 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         TerritoryData = new(() =>
         {
             return gameData.GetExcelSheet<TerritoryType>()!
-            .Where(w => w.RowId != 0)
-            .ToDictionary(w => w.RowId, w =>
-            {
-                StringBuilder sb = new();
-                sb.Append(w.PlaceNameRegion.Value.Name);
-                if (w.PlaceName.ValueNullable != null)
+                .Where(w => w.RowId != 0)
+                .ToDictionary(w => w.RowId, w =>
                 {
-                    sb.Append(" - ");
-                    sb.Append(w.PlaceName.Value.Name);
-                }
-                return sb.ToString();
-            });
+                    StringBuilder sb = new();
+                    sb.Append(w.PlaceNameRegion.Value.Name);
+                    if (w.PlaceName.ValueNullable != null)
+                    {
+                        sb.Append(" - ");
+                        sb.Append(w.PlaceName.Value.Name);
+                    }
+
+                    return sb.ToString();
+                });
         });
         MapData = new(() =>
         {
             return gameData.GetExcelSheet<Map>()!
-            .Where(w => w.RowId != 0)
-            .ToDictionary(w => w.RowId, w =>
-            {
-                StringBuilder sb = new();
-                sb.Append(w.PlaceNameRegion.Value.Name);
-                if (w.PlaceName.ValueNullable != null)
+                .Where(w => w.RowId != 0)
+                .ToDictionary(w => w.RowId, w =>
                 {
-                    sb.Append(" - ");
-                    sb.Append(w.PlaceName.Value.Name);
-                }
-                if (w.PlaceNameSub.ValueNullable != null && !string.IsNullOrEmpty(w.PlaceNameSub.Value.Name.ToString()))
-                {
-                    sb.Append(" - ");
-                    sb.Append(w.PlaceNameSub.Value.Name);
-                }
-                return (w, sb.ToString());
-            });
+                    StringBuilder sb = new();
+                    sb.Append(w.PlaceNameRegion.Value.Name);
+                    if (w.PlaceName.ValueNullable != null)
+                    {
+                        sb.Append(" - ");
+                        sb.Append(w.PlaceName.Value.Name);
+                    }
+
+                    if (w.PlaceNameSub.ValueNullable != null &&
+                        !string.IsNullOrEmpty(w.PlaceNameSub.Value.Name.ToString()))
+                    {
+                        sb.Append(" - ");
+                        sb.Append(w.PlaceNameSub.Value.Name);
+                    }
+
+                    return (w, sb.ToString());
+                });
         });
-        mediator.Subscribe<TargetPairMessage>(this, (msg) =>
+        ContentFinderData = new Lazy<Dictionary<uint, string>>(() =>
+        {
+            return gameData.GetExcelSheet<TerritoryType>()!
+                .Where(w => w.RowId != 0 && !string.IsNullOrEmpty(w.ContentFinderCondition.ValueNullable?.Name.ToString()))
+                .ToDictionary(w => w.RowId, w => w.ContentFinderCondition.Value.Name.ToString());
+        });
+
+    mediator.Subscribe<TargetPairMessage>(this, (msg) =>
         {
             if (clientState.IsPvP) return;
             var name = msg.Pair.PlayerName;
@@ -187,6 +203,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
     public Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
     public Lazy<Dictionary<uint, string>> TerritoryData { get; private set; }
     public Lazy<Dictionary<uint, (Map Map, string MapName)>> MapData { get; private set; }
+    public Lazy<Dictionary<uint, string>> ContentFinderData { get; private set; }
     public bool IsLodEnabled { get; private set; }
     public MareMediator Mediator { get; }
 
@@ -413,18 +430,16 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         uint wardId = houseMan == null ? 0 : (uint)(houseMan->GetCurrentWard() + 1);
         uint houseId = 0;
         var tempHouseId = houseMan == null ? 0 : (houseMan->GetCurrentPlot());
-        if (!houseMan->IsInside()) tempHouseId = 0;
+        if (!houseMan->IsInside()) tempHouseId = -1;
         if (tempHouseId < -1)
         {
             divisionId = tempHouseId == -127 ? 2 : (uint)1;
-            tempHouseId = 100;
+            tempHouseId = 99;
         }
-        if (tempHouseId == -1) tempHouseId = 0;
-        houseId = (uint)tempHouseId;
+        houseId = (uint)tempHouseId + 1;
         if (houseId != 0)
         {
-            //TODO:7.1
-            //territoryId = HousingManager.GetOriginalHouseTerritoryTypeId();
+            territoryId = HousingManager.GetOriginalHouseTerritoryTypeId();
         }
         uint roomId = houseMan == null ? 0 : (uint)(houseMan->GetCurrentRoom());
 
@@ -438,6 +453,43 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
             HouseId = houseId,
             RoomId = roomId
         };
+    }
+
+    public string LocationToString(LocationInfo location)
+    {
+        if (location.ServerId is 0 || location.TerritoryId is 0) return String.Empty;
+        var str = WorldData.Value[(ushort)location.ServerId];
+
+        if (ContentFinderData.Value.TryGetValue(location.TerritoryId , out var dutyName))
+        {
+            str += $" - [任务中]{dutyName}";
+        }
+
+        else
+        {
+            str += $" - {MapData.Value[(ushort)location.MapId].MapName}";
+
+            if (location.WardId is not 0)
+            {
+                str += $" {location.WardId}区";
+            }
+
+            if (location.HouseId is not 0 and not 100)
+            {
+                str += $" {location.HouseId}号";
+            }
+            else if (location.HouseId is 100)
+            {
+                str += $" {(location.DivisionId == 2 ? "[扩建区]" : "")}公寓";
+            }
+
+            if (location.RoomId is not 0)
+            {
+                str += $" {location.RoomId}室";
+            }
+        }
+
+        return str;
     }
 
     public unsafe void SetMarkerAndOpenMap(Vector3 position, Map map)
@@ -769,7 +821,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
             if (_condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51])
             {
                 var zone = _clientState.TerritoryType;
-                if (_lastZone != zone)
+                if (_lastZone != zone || _condition[ConditionFlag.WaitingToVisitOtherWorld])
                 {
                     _lastZone = zone;
                     if (!_sentBetweenAreas)

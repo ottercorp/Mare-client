@@ -1,6 +1,7 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Style;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using MareSynchronos.API.Data.Extensions;
@@ -158,6 +159,17 @@ public class DrawUserPair
             _ = _apiController.UserSetPairPermissions(new UserPermissionsDto(_pair.UserData, permissions));
         }
         UiSharedService.AttachToolTip("修改与该用户的VFX同步权限设置." + (individual ? individualText : string.Empty));
+
+        var isShareingLocation = _pair.UserPair!.OwnPermissions.IsEnabledShareLocation();
+        string isShareingLocationText = isShareingLocation ? "禁用位置共享" : "启用位置共享";
+        var isShareingLocationIcon = isShareingLocation ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Globe;
+        if (_uiSharedService.IconTextButton(isShareingLocationIcon, isShareingLocationText, _menuWidth, true))
+        {
+            var permissions = _pair.UserPair.OwnPermissions;
+            permissions.SetShareLocation(!isShareingLocation);
+            _ = _apiController.UserSetPairPermissions(new UserPermissionsDto(_pair.UserData, permissions));
+        }
+        UiSharedService.AttachToolTip("修改与该用户的位置同步设置." + (individual ? individualText : string.Empty));
 
         if (!_pair.IsPaused)
         {
@@ -382,6 +394,55 @@ public class DrawUserPair
             var individualVFXDisabled = (_pair.UserPair?.OwnPermissions.IsDisableVFX() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableVFX() ?? false);
             var individualIsSticky = _pair.UserPair!.OwnPermissions.IsSticky();
             var individualIcon = individualIsSticky ? FontAwesomeIcon.ArrowCircleUp : FontAwesomeIcon.InfoCircle;
+
+            var shareLocationIcon = FontAwesomeIcon.Globe;
+            var shareLocation = _pair.UserPair?.OwnPermissions.IsEnabledShareLocation() ?? false;
+            var shareLocationOther =  _pair.UserPair?.OtherPermissions.IsEnabledShareLocation() ?? false;
+            var shareColor = ImGuiColors.DalamudYellow;
+            if (shareLocation && shareLocationOther) shareColor = ImGuiColors.HealerGreen;
+            if (!shareLocation && !shareLocationOther) shareColor = ImGuiColors.DalamudRed;
+
+            if (shareLocation || shareLocationOther)
+            {
+                currentRightSide -= (_uiSharedService.GetIconSize(shareLocationIcon).X + spacingX);
+                ImGui.SameLine(currentRightSide);
+                using (ImRaii.PushColor(ImGuiCol.Text, shareColor, shareLocation || shareLocationOther))
+                    _uiSharedService.IconText(shareLocationIcon);
+
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.BeginTooltip();
+                    if (shareLocationOther)
+                    {
+                        var location = _apiController.GetUserLocation(_pair.UserPair!.User.UID);
+                        if (_pair.IsOnline)
+                        {
+                            if (!string.IsNullOrEmpty(location))
+                            {
+                                _uiSharedService.IconText(FontAwesomeIcon.LocationArrow);
+                                ImGui.SameLine();
+                                ImGui.TextUnformatted(location);
+                            }
+                        }
+                        else
+                        {
+                            ImGui.TextUnformatted("该用户不在线ㄟ( ▔, ▔ )ㄏ");
+                        }
+                    }
+                    else
+                    {
+                        ImGui.TextUnformatted("该用户未对你共享位置(⊙x⊙;)");
+                    }
+                    ImGui.Separator();
+
+                    if (shareLocation)
+                    {
+                        ImGui.TextUnformatted("正在与该用户共享你的位置ヾ(•ω•`)o");
+                    }
+                    ImGui.EndTooltip();
+                }
+
+            }
 
             if (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled || individualIsSticky)
             {

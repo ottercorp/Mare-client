@@ -44,6 +44,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private readonly TagHandler _tagHandler;
     private readonly UiSharedService _uiSharedService;
     private readonly FileTransferOrchestrator  _fileTransferOrchestrator;
+    private readonly DalamudUtilService _dalamudUtilService;
     private List<IDrawFolder> _drawFolders;
     private Pair? _lastAddedUser;
     private string _lastAddedUserComment = string.Empty;
@@ -55,10 +56,11 @@ public class CompactUi : WindowMediatorSubscriberBase
     private bool _wasOpen;
     private float _windowContentWidth;
 
+
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager,
         TagHandler tagHandler, DrawEntityFactory drawEntityFactory, SelectTagForPairUi selectTagForPairUi, SelectPairForTagUi selectPairForTagUi,
-        PerformanceCollectorService performanceCollectorService, IpcManager ipcManager, FileTransferOrchestrator fileTransferOrchestrator)
+        PerformanceCollectorService performanceCollectorService, IpcManager ipcManager, FileTransferOrchestrator fileTransferOrchestrator, DalamudUtilService dalamudUtilService)
         : base(logger, mediator, "###MareSynchronosMainUI", performanceCollectorService)
     {
         _uiSharedService = uiShared;
@@ -73,6 +75,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         _selectPairsForGroupUi = selectPairForTagUi;
         _ipcManager = ipcManager;
         _fileTransferOrchestrator = fileTransferOrchestrator;
+        _dalamudUtilService = dalamudUtilService;
         _tabMenu = new TopTabMenu(Mediator, _apiController, _pairManager, _uiSharedService);
 
         AllowPinning = false;
