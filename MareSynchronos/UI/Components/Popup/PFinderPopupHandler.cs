@@ -28,6 +28,10 @@ public class PFinderPopupHandler : IPopupHandler
     int index;
     GroupFullInfoDto[] groups = [];
     private GroupJoinDto? tempGroup = null;
+    private readonly bool IsSupporter = false;
+
+    private int DaysLimitForCreate = 3;
+    private int DaysLimitForLength = 1;
 
 
 
@@ -36,6 +40,12 @@ public class PFinderPopupHandler : IPopupHandler
         _apiController = apiController;
         _uiSharedService = uiSharedService;
         _pairManager = pairManager;
+        IsSupporter = UiSharedService.IsSupporter(_apiController.UID);
+        if (IsSupporter)
+        {
+            DaysLimitForCreate = 7;
+            DaysLimitForLength = 3;
+        }
     }
 
     public Vector2 PopupSize => new(800, 600);
@@ -158,10 +168,10 @@ public class PFinderPopupHandler : IPopupHandler
                 pf.EndTime = pfEndTime;
             }
 
-            if (pf.StartTime > DateTime.Now + TimeSpan.FromDays(3))
+            if (pf.StartTime > DateTime.Now + TimeSpan.FromDays(DaysLimitForCreate))
             {
                 ImGui.SameLine();
-                UiSharedService.ColorTextWrapped("开始时间不能超过大后天.", ImGuiColors.DPSRed);
+                UiSharedService.ColorTextWrapped($"开始时间不能超过{DaysLimitForCreate}天.", ImGuiColors.DPSRed);
             }
 
             if (pf.StartTime > pf.EndTime)
@@ -180,10 +190,10 @@ public class PFinderPopupHandler : IPopupHandler
                 UiSharedService.ColorTextWrapped("将在一小时内结束.", ImGuiColors.DalamudYellow);
             }
 
-            if (pf.StartTime + TimeSpan.FromDays(1) < pf.EndTime)
+            if (pf.StartTime + TimeSpan.FromDays(DaysLimitForLength) < pf.EndTime)
             {
                 ImGui.SameLine();
-                UiSharedService.ColorTextWrapped("持续时间不能超过1天.", ImGuiColors.DPSRed);
+                UiSharedService.ColorTextWrapped($"持续时间不能超过{DaysLimitForLength}天.", ImGuiColors.DPSRed);
             }
 
             ImGui.Text("描述:");

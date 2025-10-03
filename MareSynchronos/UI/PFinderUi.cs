@@ -195,7 +195,7 @@ namespace MareSynchronos.UI
             if (!_apiController.IsConnected) return;
 
             ImGui.SetNextItemWidth(750);
-            ImGui.InputText("过滤##Fliter", ref _fliter, 64);
+            ImGui.InputText("筛选##Fliter", ref _fliter, 64);
 
             var bottomBarHeight = ImGui.GetFrameHeightWithSpacing() + 5.0f;
             var childsize = new Vector2(0, -bottomBarHeight);

@@ -172,6 +172,7 @@ public sealed class Plugin : IDalamudPlugin
                 notificationManager, chatGui, s.GetRequiredService<MareConfigService>()));
             collection.AddSingleton((s) =>
             {
+                var config = s.GetRequiredService<MareConfigService>().Current;
                 var handler = new SocketsHttpHandler
                 {
                     PooledConnectionLifetime = TimeSpan.FromMinutes(5),
@@ -180,12 +181,13 @@ public sealed class Plugin : IDalamudPlugin
                     EnableMultipleHttp2Connections = true,
                     SslOptions = {
                         EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
-                        ApplicationProtocols = new List<SslApplicationProtocol> {
-                            SslApplicationProtocol.Http2, SslApplicationProtocol.Http11
-                        }
-                    }
+                        ApplicationProtocols = [SslApplicationProtocol.Http2, SslApplicationProtocol.Http11]
+                    },
+                    UseProxy = config.UseManualProxy,
+                    Proxy = config.UseManualProxy
+                        ? new WebProxy($"{config.ProxyProtocol}://{config.ProxyHost}:{config.ProxyPort}", true)
+                        : null,
                 };
-
                 var httpClient = new HttpClient(handler);
                 httpClient.DefaultRequestVersion = HttpVersion.Version20;
                 var ver = Assembly.GetExecutingAssembly().GetName().Version;

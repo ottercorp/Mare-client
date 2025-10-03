@@ -30,20 +30,6 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
     public FileTransferOrchestrator(ILogger<FileTransferOrchestrator> logger, MareConfigService mareConfig,
         MareMediator mediator, TokenProvider tokenProvider, HttpClient httpClient) : base(logger, mediator)
     {
-        if (mareConfig.Current.UseManualProxy)
-        {
-            var proxyProtocol = mareConfig.Current.ProxyProtocol;
-            var proxyHost = mareConfig.Current.ProxyHost;
-            var proxyPort = mareConfig.Current.ProxyPort;
-            var proxy = new WebProxy($"{proxyProtocol}://{proxyHost}:{proxyPort}", true);
-            WebRequest.DefaultWebProxy = proxy;
-            HttpClient.DefaultProxy = proxy;
-        } else
-        {
-            var proxy = new WebProxy();
-            WebRequest.DefaultWebProxy = proxy;
-            HttpClient.DefaultProxy = proxy;
-        }
         _mareConfig = mareConfig;
         _tokenProvider = tokenProvider;
         _httpClient = httpClient;

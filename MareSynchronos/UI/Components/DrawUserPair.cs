@@ -398,9 +398,12 @@ public class DrawUserPair
             var shareLocationIcon = FontAwesomeIcon.Globe;
             var shareLocation = _pair.UserPair?.OwnPermissions.IsEnabledShareLocation() ?? false;
             var shareLocationOther =  _pair.UserPair?.OtherPermissions.IsEnabledShareLocation() ?? false;
-            var shareColor = ImGuiColors.DalamudYellow;
-            if (shareLocation && shareLocationOther) shareColor = ImGuiColors.HealerGreen;
-            if (!shareLocation && !shareLocationOther) shareColor = ImGuiColors.DalamudRed;
+            var shareColor = shareLocation switch
+            {
+                true when shareLocationOther => ImGuiColors.HealerGreen,
+                false when shareLocationOther => ImGuiColors.TankBlue,
+                _ => ImGuiColors.DalamudYellow
+            };
 
             if (shareLocation || shareLocationOther)
             {
