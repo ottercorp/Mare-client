@@ -74,12 +74,12 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         Mediator.Subscribe<DisconnectedMessage>(this, (msg) => _locations.Clear());
         Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
         {
-            _ = UpdateLocation(new LocationDto(new UserData(UID), _dalamudUtil.GetMapDataAsync().Result), false);
+            _ = UpdateLocation(new LocationDto(new UserData(UID, DisplayName), _dalamudUtil.GetMapDataAsync().Result), false);
             _ = RequestAllLocation();
         } );
         Mediator.Subscribe<LocationMeaasge>(this, UpdateLocation);
         Mediator.Subscribe<ZoneSwitchEndMessage>(this,
-            msg => _ = UpdateLocation(new LocationDto(new UserData(UID), _dalamudUtil.GetMapDataAsync().Result), false));
+            msg => _ = UpdateLocation(new LocationDto(new UserData(UID, DisplayName), _dalamudUtil.GetMapDataAsync().Result), false));
 
 
         ServerState = ServerState.Offline;
