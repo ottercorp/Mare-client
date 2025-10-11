@@ -715,7 +715,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             #if DEBUG
             foreach (var pair in _locations)
             {
-                Logger.LogWarning($"{pair.Key}: {pair.Value}");
+                Logger.LogDebug($"{pair.Key}: {pair.Value}");
             }
             #endif
         }

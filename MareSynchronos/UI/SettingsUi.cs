@@ -1,4 +1,5 @@
 ﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Game.Text;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
@@ -25,6 +26,7 @@ using MareSynchronos.WebAPI.Files.Models;
 using MareSynchronos.WebAPI.SignalR.Utils;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -737,6 +739,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
                     ImGui.TextUnformatted($"{onlineUserPair.UserData.AliasOrUID} : {address}");
                 }
+            }
+            if (ImGui.Button("打印位置###"))
+            {
+                Log.Warning($"{_dalamudUtilService.LocationToString(_dalamudUtilService.GetMapData())}");
             }
 
             ImGui.TreePop();

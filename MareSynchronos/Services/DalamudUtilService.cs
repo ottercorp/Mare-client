@@ -4,11 +4,13 @@ using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Text;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
@@ -23,6 +25,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
+using Map = Lumina.Excel.Sheets.Map;
 using Task = System.Threading.Tasks.Task;
 
 namespace MareSynchronos.Services;
@@ -421,6 +424,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         EnsureIsOnFramework();
         var agentMap = AgentMap.Instance();
         var houseMan = HousingManager.Instance();
+        var instanceId = UIState.Instance()->PublicInstance.InstanceId;
         uint serverId = 0;
         if (_clientState.LocalPlayer == null) serverId = 0;
         else serverId = _clientState.LocalPlayer.CurrentWorld.RowId;
@@ -451,7 +455,8 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
             DivisionId = divisionId,
             WardId = wardId,
             HouseId = houseId,
-            RoomId = roomId
+            RoomId = roomId,
+            InstanceId =  instanceId,
         };
     }
 
@@ -468,6 +473,11 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         else
         {
             str += $" - {MapData.Value[(ushort)location.MapId].MapName}";
+
+            if (location.InstanceId is not 0)
+            {
+                str += ((SeIconChar)(57520 + location.InstanceId)).ToIconString();
+            }
 
             if (location.WardId is not 0)
             {

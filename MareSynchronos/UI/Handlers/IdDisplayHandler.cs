@@ -237,13 +237,15 @@ public class IdDisplayHandler
         {
             playerText = pair.PlayerName;
             textIsUid = false;
-            if (_mareConfigService.Current.PreferNotesOverNamesForVisible)
+
+        }
+
+        if (_mareConfigService.Current.PreferNotesOverNamesForVisible)
+        {
+            var note = pair.GetNote();
+            if (note != null)
             {
-                var note = pair.GetNote();
-                if (note != null)
-                {
-                    playerText = note + "(" + playerText + ")";
-                }
+                playerText = note + "(" + playerText + ")";
             }
         }
 
