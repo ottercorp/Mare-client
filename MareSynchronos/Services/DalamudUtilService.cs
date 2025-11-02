@@ -424,40 +424,41 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         EnsureIsOnFramework();
         var agentMap = AgentMap.Instance();
         var houseMan = HousingManager.Instance();
-        var instanceId = UIState.Instance()->PublicInstance.InstanceId;
-        uint serverId = 0;
-        if (_clientState.LocalPlayer == null) serverId = 0;
-        else serverId = _clientState.LocalPlayer.CurrentWorld.RowId;
-        uint mapId = agentMap == null ? 0 : agentMap->CurrentMapId;
-        uint territoryId = agentMap == null ? 0 : agentMap->CurrentTerritoryId;
-        uint divisionId = houseMan == null ? 0 : (uint)(houseMan->GetCurrentDivision());
-        uint wardId = houseMan == null ? 0 : (uint)(houseMan->GetCurrentWard() + 1);
-        uint houseId = 0;
-        var tempHouseId = houseMan == null ? 0 : (houseMan->GetCurrentPlot());
-        if (!houseMan->IsInside()) tempHouseId = -1;
-        if (tempHouseId < -1)
-        {
-            divisionId = tempHouseId == -127 ? 2 : (uint)1;
-            tempHouseId = 99;
-        }
-        houseId = (uint)tempHouseId + 1;
-        if (houseId != 0)
-        {
-            territoryId = HousingManager.GetOriginalHouseTerritoryTypeId();
-        }
-        uint roomId = houseMan == null ? 0 : (uint)(houseMan->GetCurrentRoom());
 
-        return new LocationInfo()
+        var location = new LocationInfo();
+        location.ServerId = _clientState.LocalPlayer == null ? 0 : _clientState.LocalPlayer.CurrentWorld.RowId;
+        location.InstanceId = UIState.Instance()->PublicInstance.InstanceId;
+        location.TerritoryId = agentMap == null ? 0 : agentMap->CurrentTerritoryId;
+        location.MapId = agentMap == null ? 0 : agentMap->CurrentMapId;
+        if (houseMan != null)
         {
-            ServerId = serverId,
-            MapId = mapId,
-            TerritoryId = territoryId,
-            DivisionId = divisionId,
-            WardId = wardId,
-            HouseId = houseId,
-            RoomId = roomId,
-            InstanceId =  instanceId,
-        };
+            if (houseMan->IsInside())
+            {
+                location.TerritoryId = HousingManager.GetOriginalHouseTerritoryTypeId();
+                var house = houseMan->GetCurrentIndoorHouseId();
+                location.WardId = house.WardIndex + 1u;
+                location.HouseId = house.IsApartment ? 100 : house.PlotIndex + 1u;
+                location.RoomId = (uint)house.RoomNumber;
+                location.DivisionId = house.IsApartment ? house.ApartmentDivision + 1u : houseMan->GetCurrentDivision();
+            }
+            else if (houseMan->IsInWorkshop())
+            {
+                var workShop = houseMan->WorkshopTerritory;
+                var house = workShop->HouseId;
+                location.WardId = house.WardIndex + 1u;
+                location.HouseId = house.PlotIndex + 1u;
+            }
+            else if (houseMan->IsOutside())
+            {
+                var outside = houseMan->OutdoorTerritory;
+                var house = outside->HouseId;
+                location.WardId = house.WardIndex + 1u;
+                location.HouseId = (uint)outside->StandingInPlot + 1u;
+                location.DivisionId = houseMan->GetCurrentDivision();
+            }
+            //_logger.LogWarning(LocationToString(location));
+        }
+        return location;
     }
 
     public string LocationToString(LocationInfo location)
@@ -472,7 +473,14 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
 
         else
         {
-            str += $" - {MapData.Value[(ushort)location.MapId].MapName}";
+            if (location.HouseId is not 0)
+            {
+                str += $" - {TerritoryData.Value[(ushort)location.TerritoryId]}";
+            }
+            else
+            {
+                str += $" - {MapData.Value[(ushort)location.MapId].MapName}";
+            }
 
             if (location.InstanceId is not 0)
             {

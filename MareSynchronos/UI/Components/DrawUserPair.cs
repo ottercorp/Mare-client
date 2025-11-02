@@ -426,6 +426,10 @@ public class DrawUserPair
                                 ImGui.SameLine();
                                 ImGui.TextUnformatted(location);
                             }
+                            else
+                            {
+                                ImGui.TextUnformatted("对方未更新位置信息, 请重新连接服务器以刷新或等待对方切换区域.");
+                            }
                         }
                         else
                         {

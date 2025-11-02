@@ -727,30 +727,34 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared.DrawHelpText("无论是否打开本选项都会将你的Log标记为UNSUPPORTED, 你将不会接受到管理们的帮助." + UiSharedService.TooltipSeparator
             + "打开细节层次可能导致游戏崩溃.");
 #if DEBUG
-
         if (ImGui.TreeNode("Test###DEBUG"))
         {
-            foreach (Pair onlineUserPair in _pairManager.GetOnlineUserPairs())
-            {
-                if (onlineUserPair.UserPair.OtherPermissions.IsEnabledShareLocation())
-                {
-                    var address = _apiController.GetUserLocation(onlineUserPair.UserData.UID);
-                    if (string.IsNullOrEmpty(address)) continue;
-
-                    ImGui.TextUnformatted($"{onlineUserPair.UserData.AliasOrUID} : {address}");
-                }
-            }
-            if (ImGui.Button("打印位置###"))
-            {
-                Log.Warning($"{_dalamudUtilService.LocationToString(_dalamudUtilService.GetMapData())}");
-            }
-
+            TestMethod();
             ImGui.TreePop();
         }
-
-
-
 #endif
+    }
+
+    private void TestMethod()
+    {
+        foreach (Pair onlineUserPair in _pairManager.GetOnlineUserPairs())
+        {
+            if (onlineUserPair.UserPair.OtherPermissions.IsEnabledShareLocation())
+            {
+                var address = _apiController.GetUserLocation(onlineUserPair.UserData.UID);
+                if (string.IsNullOrEmpty(address))
+                {
+                    ImGui.TextUnformatted($"{onlineUserPair.UserData.AliasOrUID} : 未知地点");
+                }
+                else ImGui.TextUnformatted($"{onlineUserPair.UserData.AliasOrUID} : {address}");
+            }
+        }
+        if (ImGui.Button("打印位置###"))
+        {
+            Log.Warning($"{_dalamudUtilService.LocationToString(_dalamudUtilService.GetMapDataAsync().Result)}");
+            Log.Warning($"{_dalamudUtilService.GetMapDataAsync().Result}");
+        }
+
     }
 
     private void DrawFileStorageSettings()

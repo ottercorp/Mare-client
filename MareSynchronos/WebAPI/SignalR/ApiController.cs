@@ -81,7 +81,6 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         Mediator.Subscribe<ZoneSwitchEndMessage>(this,
             msg => _ = UpdateLocation(new LocationDto(new UserData(UID, DisplayName), _dalamudUtil.GetMapDataAsync().Result), false));
 
-
         ServerState = ServerState.Offline;
 
         if (_dalamudUtil.IsLoggedIn)
@@ -280,7 +279,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                         $"你的客户端过旧 ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}.{currentClientVer.Revision}), 目前版本: " +
                         $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}.{_connectionDto.CurrentClientVersion.Revision}. " +
                         $"请更新Mare.",
-                        NotificationType.Warning));
+                        NotificationType.Error));
+                    await StopConnectionAsync(ServerState.VersionMisMatch).ConfigureAwait(false);
+                    return;
                 }
 
                 if (_dalamudUtil.HasModifiedGameFiles)
@@ -712,12 +713,12 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         {
             var data = await RequestLocationInfo().ConfigureAwait(false);
             _locations = data.ToDictionary(x => x.user.UID, x => x.location, StringComparer.Ordinal);
-            #if DEBUG
+#if DEBUG
             foreach (var pair in _locations)
             {
-                Logger.LogDebug($"{pair.Key}: {pair.Value}");
+                Logger.LogDebug($"Requested Location: {pair.Key}: {pair.Value}");
             }
-            #endif
+#endif
         }
         catch (Exception e)
         {
