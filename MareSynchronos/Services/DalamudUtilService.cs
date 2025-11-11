@@ -422,14 +422,13 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
     public unsafe LocationInfo GetMapData()
     {
         EnsureIsOnFramework();
-        var agentMap = AgentMap.Instance();
         var houseMan = HousingManager.Instance();
 
         var location = new LocationInfo();
         location.ServerId = _clientState.LocalPlayer == null ? 0 : _clientState.LocalPlayer.CurrentWorld.RowId;
         location.InstanceId = UIState.Instance()->PublicInstance.InstanceId;
-        location.TerritoryId = agentMap == null ? 0 : agentMap->CurrentTerritoryId;
-        location.MapId = agentMap == null ? 0 : agentMap->CurrentMapId;
+        location.TerritoryId = _clientState.TerritoryType;
+        location.MapId = _clientState.MapId;
         if (houseMan != null)
         {
             if (houseMan->IsInside())
@@ -453,7 +452,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
                 var outside = houseMan->OutdoorTerritory;
                 var house = outside->HouseId;
                 location.WardId = house.WardIndex + 1u;
-                location.HouseId = (uint)outside->StandingInPlot + 1u;
+                location.HouseId = (uint)outside->HouseUnit.PlotIndex + 1u;
                 location.DivisionId = houseMan->GetCurrentDivision();
             }
             //_logger.LogWarning(LocationToString(location));

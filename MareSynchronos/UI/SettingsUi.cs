@@ -287,7 +287,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     }
                     else
                     {
-                        handler.UseProxy = false;
+                        handler.UseProxy = true;
+                        handler.Proxy = new WebProxy();
                     }
                     var httpClient = new HttpClient(handler);
                     httpClient.Timeout = TimeSpan.FromSeconds(3);

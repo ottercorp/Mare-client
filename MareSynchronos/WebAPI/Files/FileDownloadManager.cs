@@ -248,6 +248,12 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                         response = await _orchestrator.SendRequestAsync(HttpMethod.Get, requestUrl, ct, HttpCompletionOption.ResponseHeadersRead, requestId).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
 
+
+                        #if DEBUG
+                        response.Headers.TryGetValues("cf-cache-status", out var statusValues);
+                        Logger.LogWarning($"Response of {requestUrl} : Cache-status = {statusValues?.FirstOrDefault()}");
+                        #endif
+
                         var bufferSize = response.Content.Headers.ContentLength > 1024 * 1024 ? 65536 : 8196;
                         var buffer = new byte[bufferSize];
                         var bytesRead = 0;
