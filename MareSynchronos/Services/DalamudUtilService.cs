@@ -472,7 +472,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
 
         else
         {
-            if (location.HouseId is not 0)
+            if (location.HouseId is not 0 || location.MapId is 0)
             {
                 str += $" - {TerritoryData.Value[(ushort)location.TerritoryId]}";
             }
