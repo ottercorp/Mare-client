@@ -452,7 +452,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
                 var outside = houseMan->OutdoorTerritory;
                 var house = outside->HouseId;
                 location.WardId = house.WardIndex + 1u;
-                location.HouseId = (uint)outside->HouseUnit.PlotIndex + 1u;
+                location.HouseId = (uint)houseMan->GetCurrentPlot() + 1;
                 location.DivisionId = houseMan->GetCurrentDivision();
             }
             //_logger.LogWarning(LocationToString(location));
