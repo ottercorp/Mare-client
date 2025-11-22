@@ -355,7 +355,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted("0 = 无限制");
 
-        if (ImGui.SliderInt("最大并行下载数", ref maxParallelDownloads, 1, 10))
+        if (ImGui.SliderInt("最大并行下载数(重启插件生效)", ref maxParallelDownloads, 1, 20))
         {
             _configService.Current.ParallelDownloads = maxParallelDownloads;
             _configService.Save();

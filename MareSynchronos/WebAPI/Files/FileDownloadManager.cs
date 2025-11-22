@@ -22,6 +22,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
     private readonly FileTransferOrchestrator _orchestrator;
     private readonly List<ThrottledStream> _activeDownloadStreams;
     private readonly MareConfigService _mareConfig;
+    private readonly SemaphoreSlim _downloadSemaphore; 
 
     public FileDownloadManager(ILogger<FileDownloadManager> logger, MareMediator mediator,
         FileTransferOrchestrator orchestrator,
@@ -33,6 +34,8 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         _fileCompactor = fileCompactor;
         _mareConfig = mareConfig;
         _activeDownloadStreams = [];
+        
+        _downloadSemaphore = new SemaphoreSlim(_mareConfig.Current.ParallelDownloads); 
 
         Mediator.Subscribe<DownloadLimitChangedMessage>(this, (msg) =>
         {
@@ -219,104 +222,181 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             }
         }
     }
-
-    private async Task DownloadAndMungeSingleFileHttpClient(string downloadGroup, Guid requestId, List<DownloadFileTransfer> fileTransfer, string tempPath, IProgress<long> progress, IProgress<int> fileProgress, CancellationToken ct)
+    
+    private async Task DownloadAndExtractParallel(
+        string downloadGroup, 
+        Guid requestId, 
+        List<DownloadFileTransfer> fileTransfer, 
+        List<FileReplacementData> fileReplacement, 
+        IProgress<long> progress, 
+        IProgress<int> fileProgress, 
+        CancellationToken ct)
     {
-        Logger.LogDebug("GUID {requestId} on server {uri} for files {files}", requestId, fileTransfer[0].DownloadUri, string.Join(", ", fileTransfer.Select(c => c.Hash).ToList()));
+        var parallelOptions = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = 10, 
+            CancellationToken = ct
+        };
 
-        await WaitForDownloadReady(fileTransfer, requestId, ct).ConfigureAwait(false);
-
-        _downloadStatus[downloadGroup].DownloadStatus = DownloadStatus.Downloading;
-
-
-        FileStream? mainFileStream = null;
         try
         {
-            mainFileStream = File.Create(tempPath);
-            await using (mainFileStream.ConfigureAwait(false))
+            await Parallel.ForEachAsync(fileTransfer, parallelOptions, async (transfer, token) =>
             {
-                Logger.LogDebug("Downloading for request {id}", requestId);
-                foreach (DownloadFileTransfer transfer in fileTransfer)
+                
+                await _downloadSemaphore.WaitAsync(token);
+                
+                HttpResponseMessage? response = null;
+                ThrottledStream? currentThrottledStream = null;
+
+                // 临时文件路径
+                var tempFilePath = _fileDbManager.GetCacheFilePath(transfer.Hash, "tmp");
+
+                try
                 {
-                    HttpResponseMessage? response = null;
-                    ThrottledStream? currentThrottledStream = null;
+                    // --- 阶段 1: 下载并解开传输层混淆 ---
+                    var requestUrl = MareFiles.CacheGetSingleFullPath(transfer.DownloadUri, transfer.Hash);
+                    response = await _orchestrator.SendRequestAsync(HttpMethod.Get, requestUrl, token,
+                        HttpCompletionOption.ResponseHeadersRead, requestId).ConfigureAwait(false);
+                    response.EnsureSuccessStatusCode();
+
+                    var limit = _orchestrator.DownloadLimitPerSlot();
+
+                    await using (var fileStream = File.Create(tempFilePath))
+                    {
+                        currentThrottledStream =
+                            new ThrottledStream(await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false),
+                                limit);
+
+                        lock (_activeDownloadStreams) { _activeDownloadStreams.Add(currentThrottledStream); }
+                        
+                        var buffer = new byte[65536];
+                        int bytesRead;
+                        while ((bytesRead =
+                                   await currentThrottledStream.ReadAsync(buffer, token).ConfigureAwait(false)) > 0)
+                        {
+                            MungeBuffer(buffer.AsSpan(0, bytesRead));
+
+                            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
+                            progress.Report(bytesRead);
+                        }
+                    }
+
+                    // --- 阶段 2: 读取临时文件并解压 ---
+                    await using (var readStream = File.OpenRead(tempFilePath))
+                    {
+                        // 现在文件已解开传输层混淆，Header 应该是明文 (#HASH:SIZE)
+                        (string fileHash, long fileLengthBytes) = ReadBlockFileHeader(readStream);
+
+                        if (!string.Equals(fileHash, transfer.Hash, StringComparison.OrdinalIgnoreCase))
+                        {
+                            Logger.LogWarning($"Hash mismatch: Expected {transfer.Hash}, got {fileHash}");
+                        }
+
+                        // 读取剩下的内容 (这些内容仍然处于内容层混淆状态)
+                        byte[] compressedContent = new byte[fileLengthBytes];
+                        int actualRead = await readStream.ReadAsync(compressedContent, token);
+
+                        if (actualRead != fileLengthBytes)
+                            throw new EndOfStreamException($"Expected {fileLengthBytes} bytes, but read {actualRead}");
+
+                        // 解开内容层混淆
+                        MungeBuffer(compressedContent);
+
+                        // LZ4 解压
+                        var decompressedData = LZ4Wrapper.Unwrap(compressedContent);
+
+                        // --- 阶段 3: 写入最终文件 ---
+                        var extension = fileReplacement
+                            .FirstOrDefault(f => string.Equals(f.Hash, fileHash, StringComparison.OrdinalIgnoreCase))
+                            ?.GamePaths[0].Split(".")[^1] ?? "dat";
+
+                        var finalFilePath = _fileDbManager.GetCacheFilePath(fileHash, extension);
+
+                        await _fileCompactor.WriteAllBytesAsync(finalFilePath, decompressedData, token)
+                            .ConfigureAwait(false);
+
+                        PersistFileToStorage(fileHash, finalFilePath);
+                    }
+
+                    fileProgress.Report(1);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Failed to process {hash}", transfer.Hash);
+                    throw;
+                }
+                finally
+                {
+                    if (currentThrottledStream != null)
+                    {
+                        lock (_activeDownloadStreams) { _activeDownloadStreams.Remove(currentThrottledStream); }
+
+                        await currentThrottledStream.DisposeAsync().ConfigureAwait(false);
+                    }
+
+                    response?.Dispose();
 
                     try
                     {
-                        var requestUrl = MareFiles.CacheGetSingleFullPath(transfer.DownloadUri, transfer.Hash);
-
-                        response = await _orchestrator.SendRequestAsync(HttpMethod.Get, requestUrl, ct, HttpCompletionOption.ResponseHeadersRead, requestId).ConfigureAwait(false);
-                        response.EnsureSuccessStatusCode();
-
-
-                        #if DEBUG
-                        response.Headers.TryGetValues("cf-cache-status", out var statusValues);
-                        Logger.LogWarning($"Response of {requestUrl} : Cache-status = {statusValues?.FirstOrDefault()}");
-                        #endif
-
-                        var bufferSize = response.Content.Headers.ContentLength > 1024 * 1024 ? 65536 : 8196;
-                        var buffer = new byte[bufferSize];
-                        var bytesRead = 0;
-
-                        var limit = _orchestrator.DownloadLimitPerSlot();
-
-
-                        currentThrottledStream = new ThrottledStream(await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false), limit);
-                        _activeDownloadStreams.Add(currentThrottledStream);
-
-                        while ((bytesRead = await currentThrottledStream.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
-                        {
-                            ct.ThrowIfCancellationRequested();
-
-                            MungeBuffer(buffer.AsSpan(0, bytesRead));
-
-                            await mainFileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct).ConfigureAwait(false);
-
-                            progress.Report(bytesRead);
-                        }
-                        Logger.LogDebug("{requestUrl} downloaded (appended) to {tempPath}", requestUrl, tempPath);
-                        fileProgress.Report(1);
+                        if (File.Exists(tempFilePath)) File.Delete(tempFilePath);
                     }
-                    catch (OperationCanceledException)
-                    {
-                        throw;
-                    }
-                    catch (HttpRequestException ex)
-                    {
-                        Logger.LogWarning(ex, "Error during download of {requestUrl}, HttpStatusCode: {code}", requestId, ex.StatusCode);
-                        if (ex.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Unauthorized)
-                        {
-                            throw new InvalidDataException($"Http error {ex.StatusCode} (cancelled: {ct.IsCancellationRequested}): {requestId}", ex);
-                        }
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError(ex, "An unexpected error occurred during download of a part for request {id}", requestId);
-                        throw;
-                    }
-                    finally
-                    {
-                        if (currentThrottledStream != null)
-                        {
-                            _activeDownloadStreams.Remove(currentThrottledStream);
-                            await currentThrottledStream.DisposeAsync().ConfigureAwait(false);
-                        }
-                        response?.Dispose();
-                    }
+                    catch { }
+                    
+                    _downloadSemaphore.Release();
                 }
-                Logger.LogTrace("End Download of {requestUrl} to {tempPath}", requestId, tempPath);
+            }).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogInformation("Parallel download for request {id} was cancelled.", requestId);
+        }
+    }
+
+    private async Task ExtractBlockFile(string blockFile, List<FileReplacementData> fileReplacement)
+    {
+        FileStream? fileBlockStream = null;
+        try
+        {
+            fileBlockStream = File.OpenRead(blockFile);
+            while (fileBlockStream.Position < fileBlockStream.Length)
+            {
+                (string fileHash, long fileLengthBytes) = ReadBlockFileHeader(fileBlockStream);
+
+                try
+                {
+                    var fileExtension = fileReplacement
+                        .FirstOrDefault(f => string.Equals(f.Hash, fileHash, StringComparison.OrdinalIgnoreCase))
+                        ?.GamePaths[0].Split(".")[^1] ?? "dat";
+                        
+                    var filePath = _fileDbManager.GetCacheFilePath(fileHash, fileExtension);
+                    
+                    // 读取
+                    byte[] compressedFileContent = new byte[fileLengthBytes];
+                    var readBytes = await fileBlockStream.ReadAsync(compressedFileContent, CancellationToken.None).ConfigureAwait(false);
+                    if (readBytes != fileLengthBytes) throw new EndOfStreamException();
+
+                    // 解压
+                    MungeBuffer(compressedFileContent);
+                    var decompressedFile = LZ4Wrapper.Unwrap(compressedFileContent);
+                    
+                    // 写入
+                    await _fileCompactor.WriteAllBytesAsync(filePath, decompressedFile, CancellationToken.None).ConfigureAwait(false);
+                    PersistFileToStorage(fileHash, filePath);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogWarning(e, "Error during decompression of block part");
+                }
             }
         }
-        catch (Exception ex)
+        finally
         {
-            try
-            {
-                if (!tempPath.IsNullOrEmpty() && File.Exists(tempPath))
-                    File.Delete(tempPath);
-            }
-            catch { /* ignore */ }
-            throw;
+            if (fileBlockStream != null) await fileBlockStream.DisposeAsync();
+            if (File.Exists(blockFile)) File.Delete(blockFile);
         }
     }
 
@@ -351,6 +431,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
         foreach (var downloadGroup in downloadGroups)
         {
+            // 初始化状态
             _downloadStatus[downloadGroup.Key] = new FileDownloadStatus()
             {
                 DownloadStatus = DownloadStatus.Initializing,
@@ -370,143 +451,55 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         },
         async (fileGroup, token) =>
         {
-            // let server predownload files
+            // 1. 向服务器发送请求获取 RequestID
             var requestIdResponse = await _orchestrator.SendRequestAsync(HttpMethod.Post, MareFiles.RequestEnqueueFullPath(fileGroup.First().DownloadUri),
                 fileGroup.Select(c => c.Hash), token).ConfigureAwait(false);
-            Logger.LogDebug("Sent request for {n} files on server {uri} with result {result}", fileGroup.Count(), fileGroup.First().DownloadUri,
-                await requestIdResponse.Content.ReadAsStringAsync(token).ConfigureAwait(false));
+            
+            Guid requestId = Guid.Parse((await requestIdResponse.Content.ReadAsStringAsync(token).ConfigureAwait(false)).Trim('"'));
+            Logger.LogDebug("GUID {requestId} for {n} files", requestId, fileGroup.Count());
 
-            Guid requestId = Guid.Parse((await requestIdResponse.Content.ReadAsStringAsync().ConfigureAwait(false)).Trim('"'));
-
-            Logger.LogDebug("GUID {requestId} for {n} files on server {uri}", requestId, fileGroup.Count(), fileGroup.First().DownloadUri);
-
-            var blockFile = _fileDbManager.GetCacheFilePath(requestId.ToString("N"), "blk");
-            FileInfo fi = new(blockFile);
             try
             {
                 _downloadStatus[fileGroup.Key].DownloadStatus = DownloadStatus.WaitingForSlot;
                 await _orchestrator.WaitForDownloadSlotAsync(token).ConfigureAwait(false);
-                _downloadStatus[fileGroup.Key].DownloadStatus = DownloadStatus.WaitingForQueue;
-                Progress<long> progress = new((bytesDownloaded) =>
-                {
-                    try
-                    {
-                        if (!_downloadStatus.TryGetValue(fileGroup.Key, out FileDownloadStatus? value)) return;
-                        value.TransferredBytes += bytesDownloaded;
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogWarning(ex, "Could not set download progress");
-                    }
+                _downloadStatus[fileGroup.Key].DownloadStatus = DownloadStatus.Downloading;
+
+                // 定义进度回调
+                Progress<long> progress = new((bytesDownloaded) => {
+                    if (_downloadStatus.TryGetValue(fileGroup.Key, out var v)) v.TransferredBytes += bytesDownloaded;
                 });
-                Progress<int> fileProgress = new((flesDownloaded) =>
-                {
-                    try
-                    {
-                        if (!_downloadStatus.TryGetValue(fileGroup.Key, out FileDownloadStatus? value)) return;
-                        value.TransferredFiles += flesDownloaded;
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogWarning(ex, "Could not set download file progress");
-                    }
+                Progress<int> fileProgress = new((filesDownloaded) => {
+                    if (_downloadStatus.TryGetValue(fileGroup.Key, out var v)) v.TransferredFiles += filesDownloaded;
                 });
 
                 if (_orchestrator.UseCfAccel)
                 {
-                    await DownloadAndMungeSingleFileHttpClient(fileGroup.Key, requestId, [.. fileGroup], blockFile, progress, fileProgress, token).ConfigureAwait(false);
+                    // === 新的并行处理逻辑 ===
+                    await DownloadAndExtractParallel(fileGroup.Key, requestId, [.. fileGroup], fileReplacement, progress, fileProgress, token).ConfigureAwait(false);
                 }
                 else
                 {
+                    // === 旧的 Block 下载逻辑 ===
+                    var blockFile = _fileDbManager.GetCacheFilePath(requestId.ToString("N"), "blk");
                     await DownloadAndMungeFileHttpClient(fileGroup.Key, requestId, [.. fileGroup], blockFile, progress, token).ConfigureAwait(false);
+                    
+                    // 下载完 Block 后手动解压
+                    _downloadStatus[fileGroup.Key].DownloadStatus = DownloadStatus.Decompressing;
+                    await ExtractBlockFile(blockFile, fileReplacement);
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                Logger.LogDebug("{dlName}: Detected cancellation of download, partially extracting files for {id}", fi.Name, gameObjectHandler);
             }
             catch (Exception ex)
             {
-                _orchestrator.ReleaseDownloadSlot();
-                File.Delete(blockFile);
-                Logger.LogError(ex, "{dlName}: Error during download of {id}", fi.Name, requestId);
+                Logger.LogError(ex, "Error during download of {id}", requestId);
                 ClearDownload();
-                return;
-            }
-
-            FileStream? fileBlockStream = null;
-            try
-            {
-                if (_downloadStatus.TryGetValue(fileGroup.Key, out var status))
-                {
-                    //status.TransferredFiles = 1;
-                    status.DownloadStatus = DownloadStatus.Decompressing;
-                }
-
-                fileBlockStream = File.OpenRead(blockFile);
-                while (fileBlockStream.Position < fileBlockStream.Length)
-                {
-                    (string fileHash, long fileLengthBytes) = ReadBlockFileHeader(fileBlockStream);
-
-                    try
-                    {
-                        var fileExtension = fileReplacement
-                            .First(f => string.Equals(f.Hash, fileHash, StringComparison.OrdinalIgnoreCase))
-                            .GamePaths[0].Split(".")[^1];
-                        var filePath = _fileDbManager.GetCacheFilePath(fileHash, fileExtension);
-                        Logger.LogDebug("{dlName}: Decompressing {file}:{le} => {dest}", fi.Name, fileHash,
-                            fileLengthBytes, filePath);
-
-                        byte[] compressedFileContent = new byte[fileLengthBytes];
-                        var readBytes = await fileBlockStream.ReadAsync(compressedFileContent, CancellationToken.None)
-                            .ConfigureAwait(false);
-                        if (readBytes != fileLengthBytes)
-                        {
-                            throw new EndOfStreamException();
-                        }
-
-                        MungeBuffer(compressedFileContent);
-
-                        var decompressedFile = LZ4Wrapper.Unwrap(compressedFileContent);
-                        await _fileCompactor.WriteAllBytesAsync(filePath, decompressedFile, CancellationToken.None)
-                            .ConfigureAwait(false);
-
-                        PersistFileToStorage(fileHash, filePath);
-                    }
-                    catch (EndOfStreamException)
-                    {
-                        Logger.LogWarning("{dlName}: Failure to extract file {fileHash}, stream ended prematurely",
-                            fi.Name, fileHash);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogWarning(e, "{dlName}: Error during decompression", fi.Name);
-                    }
-                }
-            }
-            catch (FileNotFoundException)
-            {
-                Logger.LogError("{dlName}: Failure to find file, Deleted?", fi.Name);
-            }
-            catch (EndOfStreamException)
-            {
-                Logger.LogDebug("{dlName}: Failure to extract file header data, stream ended", fi.Name);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "{dlName}: Error during block file read", fi.Name);
             }
             finally
             {
                 _orchestrator.ReleaseDownloadSlot();
-                if (fileBlockStream != null)
-                    await fileBlockStream.DisposeAsync().ConfigureAwait(false);
-                File.Delete(blockFile);
             }
         }).ConfigureAwait(false);
 
         Logger.LogDebug("Download end: {id}", gameObjectHandler);
-
         ClearDownload();
     }
 
