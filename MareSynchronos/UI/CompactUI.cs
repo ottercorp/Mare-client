@@ -334,21 +334,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + shardTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
         }
-
-        if (_apiController.ServerState is ServerState.Connected && _fileTransferOrchestrator.FilesCdnUri?.Host is "mare.zettaigame.com" or "mare.ffxiv.wang")
-        {
-            ImGui.SetCursorPosX(buttonSize.X / 2);
-            var accelerating = _fileTransferOrchestrator.UseCfAccel;
-            using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.GetBoolColor(accelerating)))
-            {
-                if (_uiSharedService.IconButton(FontAwesomeIcon.CloudDownloadAlt))
-                {
-                    _fileTransferOrchestrator.UseCfAccel = !_fileTransferOrchestrator.UseCfAccel;
-                }
-            }
-            UiSharedService.AttachToolTip(accelerating ? "正在使用CF加速, 点击以禁用.": "未使用CF加速, 点击以启用.");
-        }
-
+        
         bool isConnectingOrConnected = _apiController.ServerState is ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting;
         var color = UiSharedService.GetBoolColor(!isConnectingOrConnected);
         var connectedIcon = isConnectingOrConnected ? FontAwesomeIcon.Unlink : FontAwesomeIcon.Link;

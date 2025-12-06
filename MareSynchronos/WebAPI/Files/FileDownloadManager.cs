@@ -436,7 +436,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             {
                 DownloadStatus = DownloadStatus.Initializing,
                 TotalBytes = downloadGroup.Sum(c => c.Total),
-                TotalFiles = _orchestrator.UseCfAccel ? downloadGroup.Count() : 1,
+                TotalFiles = downloadGroup.Count(),
                 TransferredBytes = 0,
                 TransferredFiles = 0
             };
@@ -472,7 +472,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     if (_downloadStatus.TryGetValue(fileGroup.Key, out var v)) v.TransferredFiles += filesDownloaded;
                 });
 
-                if (_orchestrator.UseCfAccel)
+                if (true)
                 {
                     // === 新的并行处理逻辑 ===
                     await DownloadAndExtractParallel(fileGroup.Key, requestId, [.. fileGroup], fileReplacement, progress, fileProgress, token).ConfigureAwait(false);

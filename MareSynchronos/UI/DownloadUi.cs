@@ -125,7 +125,7 @@ public class DownloadUi : WindowMediatorSubscriberBase
                     ImGui.NewLine();
                     ImGui.SameLine(xDistance);
                     UiSharedService.DrawOutlinedFont(
-                        $"{transferredFiles}/{totalFiles} ({UiSharedService.ByteToString(transferredBytes, addSuffix: false)}/{UiSharedService.ByteToString(totalBytes)})",
+                        $"{transferredFiles}/{totalFiles} ({UiSharedService.ByteToString(transferredBytes, addSuffix: true)}/{UiSharedService.ByteToString(totalBytes)})",
                         ImGuiColors.DalamudWhite, new Vector4(0, 0, 0, 255), 1);
                 }
             }
