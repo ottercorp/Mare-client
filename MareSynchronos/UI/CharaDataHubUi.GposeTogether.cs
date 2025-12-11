@@ -95,8 +95,8 @@ internal sealed partial class CharaDataHubUi
             UiSharedService.DistanceSeparator();
             ImGui.TextUnformatted("用户列表");
             var gposeCharas = _dalamudUtilService.GetGposeCharactersFromObjectTable();
-            var self = _dalamudUtilService.GetPlayerCharacter();
-            gposeCharas = gposeCharas.Where(c => c != null && !string.Equals(c.Name.TextValue, self.Name.TextValue, StringComparison.Ordinal)).ToList();
+            var self = _dalamudUtilService.GetPlayerState();
+            gposeCharas = gposeCharas.Where(c => c != null && !string.Equals(c.Name.TextValue, self.CharacterName, StringComparison.Ordinal)).ToList();
 
             using (ImRaii.Child("charaChild", new(0, 0), false, ImGuiWindowFlags.AlwaysAutoResize))
             {

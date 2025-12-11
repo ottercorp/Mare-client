@@ -74,12 +74,12 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         Mediator.Subscribe<DisconnectedMessage>(this, (msg) => _locations.Clear());
         Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
         {
-            _ = UpdateLocation(new LocationDto(new UserData(UID, DisplayName), _dalamudUtil.GetMapDataAsync().Result), false);
+            _ = UpdateLocation(new LocationDto(new UserData(UID, DisplayName), _dalamudUtil.GetMapData()), false);
             _ = RequestAllLocation();
         } );
         Mediator.Subscribe<LocationMeaasge>(this, UpdateLocation);
         Mediator.Subscribe<ZoneSwitchEndMessage>(this,
-            msg => _ = UpdateLocation(new LocationDto(new UserData(UID, DisplayName), _dalamudUtil.GetMapDataAsync().Result), false));
+            msg => _ = UpdateLocation(new LocationDto(new UserData(UID, DisplayName), _dalamudUtil.GetMapData()), false));
 
         ServerState = ServerState.Offline;
 
@@ -425,8 +425,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
     private void DalamudUtilOnLogIn()
     {
-        var charaName = _dalamudUtil.GetPlayerNameAsync().GetAwaiter().GetResult();
-        var worldId = _dalamudUtil.GetHomeWorldIdAsync().GetAwaiter().GetResult();
+        var charaName = _dalamudUtil.GetPlayerName();
+        var worldId = _dalamudUtil.GetHomeWorldId();
         var auth = _serverManager.CurrentServer.Authentications.Find(f => string.Equals(f.CharacterName, charaName, StringComparison.Ordinal) && f.WorldId == worldId);
         if (auth?.AutoLogin ?? false)
         {
@@ -517,7 +517,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         CensusDataDto? dto = null;
         if (/*_serverManager.SendCensusData && */_lastCensus != null)
         {
-            var world = await _dalamudUtil.GetWorldIdAsync().ConfigureAwait(false);
+            var world = _dalamudUtil.GetWorldId();
             dto = new((ushort)world, _lastCensus.RaceId, _lastCensus.TribeId, _lastCensus.Gender);
             Logger.LogDebug("Attaching Census Data: {data}", dto);
         }
@@ -636,7 +636,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     public Task Client_UserApplyMoodlesByStatus(ApplyMoodlesByStatusDto dto)
     {
             // obtain the local player name and world
-            string NameWithWorld = _dalamudUtil.GetPlayerNameWithWorldAsync().GetAwaiter().GetResult();
+            string NameWithWorld = _dalamudUtil.GetPlayerNameWithWorldAsync();
             ExecuteSafely(() => ApplyStatusesToSelf(dto, NameWithWorld));
             return Task.CompletedTask;
     }

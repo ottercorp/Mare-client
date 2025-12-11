@@ -98,9 +98,9 @@ public class ServerConfigurationManager
         }
         hasMulti = false;
 
-        var charaName = _dalamudUtil.GetPlayerNameAsync().GetAwaiter().GetResult();
-        var worldId = _dalamudUtil.GetHomeWorldIdAsync().GetAwaiter().GetResult();
-        var cid = _dalamudUtil.GetCIDAsync().GetAwaiter().GetResult();
+        var charaName = _dalamudUtil.GetPlayerName();
+        var worldId = _dalamudUtil.GetHomeWorldId();
+        var cid = _dalamudUtil.GetCID();
 
         var auth = currentServer.Authentications.FindAll(f => string.Equals(f.CharacterName, charaName) && f.WorldId == worldId);
         if (auth.Count >= 2)
@@ -145,9 +145,9 @@ public class ServerConfigurationManager
         }
         hasMulti = false;
 
-        var charaName = _dalamudUtil.GetPlayerNameAsync().GetAwaiter().GetResult();
-        var worldId = _dalamudUtil.GetHomeWorldIdAsync().GetAwaiter().GetResult();
-        var cid = _dalamudUtil.GetCIDAsync().GetAwaiter().GetResult();
+        var charaName = _dalamudUtil.GetPlayerName();
+        var worldId = _dalamudUtil.GetHomeWorldId();
+        var cid = _dalamudUtil.GetCID();
         if (!currentServer.Authentications.Any() && currentServer.SecretKeys.Any())
         {
             currentServer.Authentications.Add(new Authentication()
@@ -258,16 +258,16 @@ public class ServerConfigurationManager
     {
         if (serverSelectionIndex == -1) serverSelectionIndex = CurrentServerIndex;
         var server = GetServerByIndex(serverSelectionIndex);
-        if (server.Authentications.Any(c => string.Equals(c.CharacterName, _dalamudUtil.GetPlayerNameAsync().GetAwaiter().GetResult(), StringComparison.Ordinal)
-                && c.WorldId == _dalamudUtil.GetHomeWorldIdAsync().GetAwaiter().GetResult()))
+        if (server.Authentications.Any(c => string.Equals(c.CharacterName, _dalamudUtil.GetPlayerName(), StringComparison.Ordinal)
+                && c.WorldId == _dalamudUtil.GetHomeWorldId()))
             return;
 
         server.Authentications.Add(new Authentication()
         {
-            CharacterName = _dalamudUtil.GetPlayerNameAsync().GetAwaiter().GetResult(),
-            WorldId = _dalamudUtil.GetHomeWorldIdAsync().GetAwaiter().GetResult(),
+            CharacterName = _dalamudUtil.GetPlayerName(),
+            WorldId = _dalamudUtil.GetHomeWorldId(),
             SecretKeyIdx = !server.UseOAuth2 ? server.SecretKeys.Last().Key : -1,
-            LastSeenCID = _dalamudUtil.GetCIDAsync().GetAwaiter().GetResult()
+            LastSeenCID = _dalamudUtil.GetCID()
         });
         Save();
     }

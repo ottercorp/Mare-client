@@ -438,13 +438,17 @@ public class DrawUserPair
                     }
                     else
                     {
-                        ImGui.TextUnformatted("该用户未对你共享位置(⊙x⊙;)");
+                        ImGui.TextUnformatted("该用户未对你共享Ta的位置(⊙x⊙;)");
                     }
                     ImGui.Separator();
 
                     if (shareLocation)
                     {
                         ImGui.TextUnformatted("正在与该用户共享你的位置ヾ(•ω•`)o");
+                    }
+                    else
+                    {
+                        ImGui.TextUnformatted("未与该用户共享你的位置(´。＿。｀)");
                     }
                     ImGui.EndTooltip();
                 }

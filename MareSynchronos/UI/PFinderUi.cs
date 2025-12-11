@@ -91,6 +91,7 @@ namespace MareSynchronos.UI
         {
             if ((uint)type != 72) return;
             if (!_gamePfString.IsMatch(message.TextValue)) return;
+            if (!_configService.Current.ShowPFinder) return;
 
             PrintPFCount();
         }
@@ -122,6 +123,7 @@ namespace MareSynchronos.UI
 
         private async Task UpdatePFs(CancellationToken ct)
         {
+            if (!_configService.Current.ShowPFinder) return;
             var first = true;
             while (!ct.IsCancellationRequested)
             {

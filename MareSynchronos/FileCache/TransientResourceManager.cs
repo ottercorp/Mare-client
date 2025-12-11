@@ -59,7 +59,7 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
         }
     }
 
-    private string PlayerPersistentDataKey => _dalamudUtil.GetPlayerNameAsync().GetAwaiter().GetResult() + "_" + _dalamudUtil.GetHomeWorldIdAsync().GetAwaiter().GetResult();
+    private string PlayerPersistentDataKey => _dalamudUtil.GetPlayerName() + "_" + _dalamudUtil.GetHomeWorldId();
     private ConcurrentDictionary<ObjectKind, HashSet<string>> SemiTransientResources
     {
         get

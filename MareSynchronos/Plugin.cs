@@ -44,7 +44,7 @@ public sealed class Plugin : IDalamudPlugin
         IFramework framework, IObjectTable objectTable, IClientState clientState, ICondition condition, IChatGui chatGui,
         IGameGui gameGui, IDtrBar dtrBar, IPluginLog pluginLog, ITargetManager targetManager, INotificationManager notificationManager,
         ITextureProvider textureProvider, IContextMenu contextMenu, IGameInteropProvider gameInteropProvider, IGameConfig gameConfig,
-        ISigScanner sigScanner)
+        ISigScanner sigScanner, IPlayerState playerState)
     {
         if (!Directory.Exists(pluginInterface.ConfigDirectory.FullName))
             Directory.CreateDirectory(pluginInterface.ConfigDirectory.FullName);
@@ -138,8 +138,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton((s) => new EventAggregator(pluginInterface.ConfigDirectory.FullName,
                 s.GetRequiredService<ILogger<EventAggregator>>(), s.GetRequiredService<MareMediator>()));
             collection.AddSingleton((s) => new DalamudUtilService(s.GetRequiredService<ILogger<DalamudUtilService>>(),
-                clientState, objectTable, framework, gameGui, condition, gameData, targetManager, gameConfig, sigScanner,
-                s.GetRequiredService<BlockedCharacterHandler>(), s.GetRequiredService<MareMediator>(), s.GetRequiredService<PerformanceCollectorService>()));
+                clientState, objectTable, playerState, framework, gameGui, condition, gameData, targetManager, gameConfig, sigScanner, s.GetRequiredService<BlockedCharacterHandler>(), s.GetRequiredService<MareMediator>(), s.GetRequiredService<PerformanceCollectorService>()));
             collection.AddSingleton((s) => new DtrEntry(s.GetRequiredService<ILogger<DtrEntry>>(), dtrBar, s.GetRequiredService<MareConfigService>(),
                 s.GetRequiredService<MareMediator>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<ApiController>()));
             collection.AddSingleton(s => new PairManager(s.GetRequiredService<ILogger<PairManager>>(), s.GetRequiredService<PairFactory>(),

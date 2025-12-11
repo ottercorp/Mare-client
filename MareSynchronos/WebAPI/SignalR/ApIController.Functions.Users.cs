@@ -144,7 +144,7 @@ public partial class ApiController
         CensusDataDto? censusDto = null;
         if (/*_serverManager.SendCensusData &&*/ _lastCensus != null)
         {
-            var world = await _dalamudUtil.GetWorldIdAsync().ConfigureAwait(false);
+            var world = _dalamudUtil.GetWorldId();
             censusDto = new((ushort)world, _lastCensus.RaceId, _lastCensus.TribeId, _lastCensus.Gender);
             Logger.LogDebug("Attaching Census Data: {data}", censusDto);
         }

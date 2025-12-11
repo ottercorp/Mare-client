@@ -42,6 +42,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
     private readonly IGameGui _gameGui;
     private readonly ILogger<DalamudUtilService> _logger;
     private readonly IObjectTable _objectTable;
+    private readonly IPlayerState _playerState;
     private readonly PerformanceCollectorService _performanceCollector;
     private uint? _classJobId = 0;
     private DateTime _delayedFrameworkUpdateCheck = DateTime.UtcNow;
@@ -53,11 +54,10 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
     private bool _sentBetweenAreas = false;
     private Lazy<ulong> _cid;
     private readonly ISigScanner _sigScanner;
-    private readonly Dictionary<ulong, string> _aidCache = [];
     private Lazy<uint> _aid;
-    private int _aidCounter = 0;
 
     public DalamudUtilService(ILogger<DalamudUtilService> logger, IClientState clientState, IObjectTable objectTable,
+        IPlayerState playerState,
         IFramework framework,
         IGameGui gameGui, ICondition condition, IDataManager gameData, ITargetManager targetManager,
         IGameConfig gameConfig, ISigScanner sigScanner,
@@ -67,6 +67,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         _logger = logger;
         _clientState = clientState;
         _objectTable = objectTable;
+        _playerState = playerState;
         _framework = framework;
         _gameGui = gameGui;
         _condition = condition;
@@ -268,7 +269,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
     public bool GetIsPlayerPresent()
     {
         EnsureIsOnFramework();
-        return _clientState.LocalPlayer != null && _clientState.LocalPlayer.IsValid();
+        return _objectTable.LocalPlayer != null && _objectTable.LocalPlayer.IsValid() && _playerState.IsLoaded;
     }
 
     public async Task<bool> GetIsPlayerPresentAsync()
@@ -309,28 +310,21 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         return await RunOnFrameworkThread(GetPlayerCharacter).ConfigureAwait(false);
     }
 
-    public IPlayerCharacter GetPlayerCharacter()
+    private IPlayerCharacter GetPlayerCharacter()
     {
         EnsureIsOnFramework();
-        return _clientState.LocalPlayer!;
+        return _objectTable.LocalPlayer!;
     }
 
-    public IntPtr GetPlayerCharacterFromCachedTableByIdent(string characterName)
+    public IPlayerState GetPlayerState()
     {
-        if (_playerCharas.TryGetValue(characterName, out var pchar)) return pchar.Address;
+        return _playerState;
+    }
+
+    public IntPtr GetPlayerCharacterFromCachedTableByIdent(string ident)
+    {
+        if (_playerCharas.TryGetValue(ident, out var pchar)) return pchar.Address;
         return IntPtr.Zero;
-    }
-
-    public string GetPlayerName()
-    {
-        EnsureIsOnFramework();
-        return _clientState.LocalPlayer?.Name.ToString() ?? "--";
-    }
-
-    public string GetPlayerNameWithWorld()
-    {
-        EnsureIsOnFramework();
-        return _clientState.LocalPlayer?.Name + "@" + _clientState.LocalPlayer?.HomeWorld.Value.Name.ExtractText();
     }
 
     public IPlayerCharacter? SearchPlayerByName(string name)
@@ -345,61 +339,40 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         return await RunOnFrameworkThread(() =>SearchPlayerByName(name)).ConfigureAwait(false);
     }
 
-    public async Task<string> GetPlayerNameWithWorldAsync()
+    public string GetPlayerNameWithWorldAsync()
     {
-        return await RunOnFrameworkThread(GetPlayerNameWithWorld).ConfigureAwait(false);
+        return _playerState.CharacterName + "@" + _playerState.HomeWorld.Value.Name.ExtractText();
     }
 
-    public async Task<string> GetPlayerNameAsync()
+    public string GetPlayerName()
     {
-        return await RunOnFrameworkThread(GetPlayerName).ConfigureAwait(false);
+        return _playerState.CharacterName;
     }
 
-    public async Task<ulong> GetCIDAsync()
+    public ulong GetCID()
     {
-        return await RunOnFrameworkThread(GetCID).ConfigureAwait(false);
+        return _playerState.ContentId;
     }
 
-    public unsafe ulong GetCID()
+    public string GetPlayerAidHashed()
     {
-        EnsureIsOnFramework();
-        var playerChar = GetPlayerCharacter();
-        return ((BattleChara*)playerChar.Address)->Character.ContentId;
+        return _aid.Value.ToString().GetHash256();
     }
 
-    public async Task<string> GetPlayerAidHashedAsync()
+    public string GetPlayerNameHashed()
     {
-        return await RunOnFrameworkThread(() => _aid.Value.ToString().GetHash256()).ConfigureAwait(false);
-    }
-
-    public async Task<string> GetPlayerNameHashedAsync()
-    {
-        return await RunOnFrameworkThread(() => _cid.Value.ToString().GetHash256()).ConfigureAwait(false);
+        return _cid.Value.ToString().GetHash256();
     }
 
     private unsafe string GetHashedCIDFromPlayerPointer(nint ptr)
     {
-//         if (ptr == nint.Zero) return "UNK" + _aidCounter++;
-//         var aid = ((BattleChara*)ptr)->Character.AccountId;
-//         if (!_aidCache.TryGetValue(aid, out string? hash))
-//         {
-//             var player = GetPlayerCharacter();
-//             if (player == null) return "UNK" + _aidCounter++;
-//             _aidCache[aid] = hash = unchecked((uint)(((((BattleChara*)player.Address)->Character.AccountId ^ aid) >> 31) ^ _aid.Value)).ToString().GetHash256();
-// #if DEBUG
-//             _logger.LogWarning("Logged player {playerName} with aid {aid}", ((BattleChara*)ptr)->Character.GetName().ExtractText(), unchecked((uint)(((((BattleChara*)player.Address)->Character.AccountId ^ aid) >> 31) ^ _aid.Value)).ToString("X"));
-// #endif
-//         }
-//         return hash;
-
-
         return ((BattleChara*)ptr)->Character.ContentId.ToString().GetHash256();
     }
 
     public IntPtr GetPlayerPtr()
     {
         EnsureIsOnFramework();
-        return _clientState.LocalPlayer?.Address ?? IntPtr.Zero;
+        return _objectTable.LocalPlayer?.Address ?? IntPtr.Zero;
     }
 
     public async Task<IntPtr> GetPlayerPointerAsync()
@@ -407,25 +380,12 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         return await RunOnFrameworkThread(GetPlayerPtr).ConfigureAwait(false);
     }
 
-    public uint GetHomeWorldId()
-    {
-        EnsureIsOnFramework();
-        return _clientState.LocalPlayer?.HomeWorld.RowId ?? 0;
-    }
-
-    public uint GetWorldId()
-    {
-        EnsureIsOnFramework();
-        return _clientState.LocalPlayer!.CurrentWorld.RowId;
-    }
-
     public unsafe LocationInfo GetMapData()
     {
-        EnsureIsOnFramework();
         var houseMan = HousingManager.Instance();
 
         var location = new LocationInfo();
-        location.ServerId = _clientState.LocalPlayer == null ? 0 : _clientState.LocalPlayer.CurrentWorld.RowId;
+        location.ServerId = _playerState.CurrentWorld.RowId;
         location.InstanceId = UIState.Instance()->PublicInstance.InstanceId;
         location.TerritoryId = _clientState.TerritoryType;
         location.MapId = _clientState.MapId;
@@ -518,19 +478,14 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         agentMap->SetFlagMapMarker(map.TerritoryType.RowId, map.RowId, position);
     }
 
-    public async Task<LocationInfo> GetMapDataAsync()
+    public uint GetWorldId()
     {
-        return await RunOnFrameworkThread(GetMapData).ConfigureAwait(false);
+        return _playerState.CurrentWorld.RowId;
     }
 
-    public async Task<uint> GetWorldIdAsync()
+    public uint GetHomeWorldId()
     {
-        return await RunOnFrameworkThread(GetWorldId).ConfigureAwait(false);
-    }
-
-    public async Task<uint> GetHomeWorldIdAsync()
-    {
-        return await RunOnFrameworkThread(GetHomeWorldId).ConfigureAwait(false);
+        return _playerState.HomeWorld.RowId;
     }
 
     public unsafe bool IsGameObjectPresent(IntPtr key)
@@ -594,7 +549,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         _framework.Update += FrameworkOnUpdate;
         if (IsLoggedIn)
         {
-            _classJobId = _clientState.LocalPlayer!.ClassJob.RowId;
+            _classJobId = _playerState.ClassJob.RowId;
         }
 
         _logger.LogInformation("Started DalamudUtilService");
@@ -736,7 +691,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
 
     private unsafe void FrameworkOnUpdateInternal()
     {
-        if ((_clientState.LocalPlayer?.IsDead ?? false) && _condition[ConditionFlag.BoundByDuty])
+        if ((_objectTable.LocalPlayer?.IsDead ?? false) && _condition[ConditionFlag.BoundByDuty])
         {
             return;
         }
@@ -860,11 +815,10 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
                 Mediator.Publish(new ZoneSwitchEndMessage());
                 Mediator.Publish(new ResumeScanMessage(nameof(ConditionFlag.BetweenAreas)));
             }
-
-            var localPlayer = _clientState.LocalPlayer;
-            if (localPlayer != null)
+            
+            if (_playerState.IsLoaded)
             {
-                _classJobId = localPlayer.ClassJob.RowId;
+                _classJobId = _playerState.ClassJob.RowId;
             }
 
             if (!IsInCombatOrPerforming)
@@ -875,7 +829,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
             if (isNormalFrameworkUpdate)
                 return;
 
-            if (localPlayer != null && !IsLoggedIn)
+            if (_playerState.IsLoaded && !IsLoggedIn)
             {
                 _logger.LogDebug("Logged in");
                 IsLoggedIn = true;
@@ -884,11 +838,12 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
                 _aid = RebuildAid();
                 Mediator.Publish(new DalamudLoginMessage());
             }
-            else if (localPlayer == null && IsLoggedIn)
+            else if (!_playerState.IsLoaded && IsLoggedIn)
             {
                 _logger.LogDebug("Logged out");
                 IsLoggedIn = false;
                 Mediator.Publish(new DalamudLogoutMessage());
+                
             }
 
             if (_gameConfig != null

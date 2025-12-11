@@ -451,7 +451,7 @@ public class CharaDataGposeTogetherManager : DisposableMediatorSubscriberBase
                     };
                 }
 
-                var loc = await _dalamudUtil.GetMapDataAsync().ConfigureAwait(false);
+                var loc = _dalamudUtil.GetMapData();
                 worldData.LocationInfo = loc;
 
                 if (_forceResendWorldData || worldData != _lastWorldData)

@@ -256,7 +256,7 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
 
             Logger.LogTrace("Attaching World data {data}", worldData);
 
-            worldData.LocationInfo = await _dalamudUtilService.GetMapDataAsync().ConfigureAwait(false);
+            worldData.LocationInfo = _dalamudUtilService.GetMapData();
 
             Logger.LogTrace("World data serialized: {data}", worldData);
 
@@ -853,7 +853,7 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
 
             if (!string.IsNullOrEmpty(moodlesData))
             {
-                var player = await _dalamudUtilService.GetPlayerNameWithWorldAsync().ConfigureAwait(false);
+                var player = _dalamudUtilService.GetPlayerNameWithWorldAsync();
                 DataApplicationProgress = "正在应用Moodles数据";
                 Logger.LogTrace("[{appId}] Applying Moodles data", applicationId);
                 await _ipcManager.Moodles.ApplyStatusesFromPairToSelf(player, player, moodlesData).ConfigureAwait(false);

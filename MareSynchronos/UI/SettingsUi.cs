@@ -752,8 +752,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         if (ImGui.Button("打印位置###"))
         {
-            Log.Warning($"{_dalamudUtilService.LocationToString(_dalamudUtilService.GetMapDataAsync().Result)}");
-            Log.Warning($"{_dalamudUtilService.GetMapDataAsync().Result}");
+            Log.Warning($"{_dalamudUtilService.LocationToString(_dalamudUtilService.GetMapData())}");
+            Log.Warning($"{_dalamudUtilService.GetMapData()}");
         }
 
     }
@@ -1081,6 +1081,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (ImGui.Checkbox("登录时自动打开聊天窗口", ref open))
         {
             _configService.Current.ShowChatWindowOnLogin = open;
+            _configService.Save();
+        }
+        
+        var showPF = _configService.Current.ShowPFinder;
+        if (ImGui.Checkbox("显示月海招募", ref showPF))
+        {
+            _configService.Current.ShowPFinder = showPF;
             _configService.Save();
         }
 

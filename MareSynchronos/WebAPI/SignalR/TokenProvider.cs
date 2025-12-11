@@ -145,9 +145,9 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
         JwtIdentifier jwtIdentifier;
         try
         {
-            var playerIdentifier = await _dalamudUtil.GetPlayerNameHashedAsync().ConfigureAwait(false);
-            var nameWithWorld = await _dalamudUtil.GetPlayerNameWithWorldAsync().ConfigureAwait(false);
-            var aidHash = await _dalamudUtil.GetPlayerAidHashedAsync().ConfigureAwait(false);
+            var playerIdentifier = _dalamudUtil.GetPlayerNameHashed();
+            var nameWithWorld = _dalamudUtil.GetPlayerNameWithWorldAsync();
+            var aidHash = _dalamudUtil.GetPlayerAidHashed();
             if (string.IsNullOrEmpty(playerIdentifier))
             {
                 _logger.LogTrace("GetIdentifier: PlayerIdentifier was null, returning last identifier {identifier}", _lastJwtIdentifier);
