@@ -5,6 +5,7 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text;
+using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -13,18 +14,21 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using Lumina;
 using Lumina.Excel.Sheets;
 using MareSynchronos.API.Dto.CharaData;
 using MareSynchronos.Interop;
 using MareSynchronos.PlayerData.Handlers;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 using Map = Lumina.Excel.Sheets.Map;
 using Task = System.Threading.Tasks.Task;
 
@@ -44,6 +48,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
     private readonly IObjectTable _objectTable;
     private readonly IPlayerState _playerState;
     private readonly PerformanceCollectorService _performanceCollector;
+    private readonly ITargetManager _targetManager;
     private uint? _classJobId = 0;
     private DateTime _delayedFrameworkUpdateCheck = DateTime.UtcNow;
     private string _lastGlobalBlockPlayer = string.Empty;
@@ -55,31 +60,28 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
     private Lazy<ulong> _cid;
     private readonly ISigScanner _sigScanner;
     private Lazy<uint> _aid;
-
-    public DalamudUtilService(ILogger<DalamudUtilService> logger, IClientState clientState, IObjectTable objectTable,
-        IPlayerState playerState,
-        IFramework framework,
-        IGameGui gameGui, ICondition condition, IDataManager gameData, ITargetManager targetManager,
-        IGameConfig gameConfig, ISigScanner sigScanner,
+    
+    public DalamudUtilService(ILogger<DalamudUtilService> logger, IDalamudPluginInterface pluginInterface,
         BlockedCharacterHandler blockedCharacterHandler, MareMediator mediator,
         PerformanceCollectorService performanceCollector)
     {
         _logger = logger;
-        _clientState = clientState;
-        _objectTable = objectTable;
-        _playerState = playerState;
-        _framework = framework;
-        _gameGui = gameGui;
-        _condition = condition;
-        _gameData = gameData;
-        _gameConfig = gameConfig;
+        _clientState = pluginInterface.GetRequiredService<IClientState>();
+        _objectTable = pluginInterface.GetRequiredService<IObjectTable>();
+        _playerState = pluginInterface.GetRequiredService<IPlayerState>();
+        _framework = pluginInterface.GetRequiredService<IFramework>();
+        _gameGui = pluginInterface.GetRequiredService<IGameGui>();
+        _condition = pluginInterface.GetRequiredService<ICondition>();
+        _gameData = pluginInterface.GetRequiredService<IDataManager>();
+        _gameConfig = pluginInterface.GetRequiredService<IGameConfig>();
+        _targetManager = pluginInterface.GetRequiredService<ITargetManager>();
         _blockedCharacterHandler = blockedCharacterHandler;
         Mediator = mediator;
         _performanceCollector = performanceCollector;
-        _sigScanner = sigScanner;
+        _sigScanner = pluginInterface.GetRequiredService<ISigScanner>();
         WorldData = new(() =>
         {
-            return gameData.GetExcelSheet<Lumina.Excel.Sheets.World>()!
+            return _gameData.GetExcelSheet<Lumina.Excel.Sheets.World>()!
                 .Where(w => !w.Name.IsEmpty && w.DataCenter.RowId != 0 &&
                             (w.IsPublic || char.IsUpper(w.Name.ToString()[0])) ||
                             w is { Region: 2, RowId: >= 1000, UserType: 101 })
@@ -87,12 +89,12 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         });
         JobData = new(() =>
         {
-            return gameData.GetExcelSheet<ClassJob>()!
+            return _gameData.GetExcelSheet<ClassJob>()!
                 .ToDictionary(k => k.RowId, k => k.NameEnglish.ToString());
         });
         TerritoryData = new(() =>
         {
-            return gameData.GetExcelSheet<TerritoryType>()!
+            return _gameData.GetExcelSheet<TerritoryType>()!
                 .Where(w => w.RowId != 0)
                 .ToDictionary(w => w.RowId, w =>
                 {
@@ -109,7 +111,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         });
         MapData = new(() =>
         {
-            return gameData.GetExcelSheet<Map>()!
+            return _gameData.GetExcelSheet<Map>()!
                 .Where(w => w.RowId != 0)
                 .ToDictionary(w => w.RowId, w =>
                 {
@@ -133,21 +135,21 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         });
         ContentFinderData = new Lazy<Dictionary<uint, string>>(() =>
         {
-            return gameData.GetExcelSheet<TerritoryType>()!
+            return _gameData.GetExcelSheet<TerritoryType>()!
                 .Where(w => w.RowId != 0 && !string.IsNullOrEmpty(w.ContentFinderCondition.ValueNullable?.Name.ToString()))
                 .ToDictionary(w => w.RowId, w => w.ContentFinderCondition.Value.Name.ToString());
         });
 
     mediator.Subscribe<TargetPairMessage>(this, (msg) =>
         {
-            if (clientState.IsPvP) return;
+            if (_clientState.IsPvP) return;
             var name = msg.Pair.PlayerName;
             if (string.IsNullOrEmpty(name)) return;
             var addr = _playerCharas.FirstOrDefault(f => string.Equals(f.Value.Name, name, StringComparison.Ordinal)).Value.Address;
             if (addr == nint.Zero) return;
             _ = RunOnFrameworkThread(() =>
             {
-                targetManager.Target = CreateGameObject(addr);
+                _targetManager.Target = CreateGameObject(addr);
             }).ConfigureAwait(false);
         });
         IsWine = Util.IsWine();
