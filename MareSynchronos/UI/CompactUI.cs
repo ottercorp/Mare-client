@@ -302,7 +302,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 #if DEBUG
         string shardConnection = $"子服务器: {_apiController.ServerInfo.ShardName}";
 #else
-        string shardConnection = string.Equals(_apiController.ServerInfo.ShardName, "主要", StringComparison.OrdinalIgnoreCase) ? string.Empty : $"子服务器: {_apiController.ServerInfo.ShardName}";
+        string shardConnection = string.Equals(_apiController.ServerInfo.ShardName, "Main", StringComparison.OrdinalIgnoreCase) ? string.Empty : $"子服务器: {_apiController.ServerInfo.ShardName}";
 #endif
         var shardTextSize = ImGui.CalcTextSize(shardConnection);
         var printShard = !string.IsNullOrEmpty(_apiController.ServerInfo.ShardName) && shardConnection != string.Empty;
