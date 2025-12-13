@@ -240,6 +240,9 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
         try
         {
+            await WaitForDownloadReady(fileTransfer, requestId, ct).ConfigureAwait(false);
+            _downloadStatus[downloadGroup].DownloadStatus = DownloadStatus.Downloading;
+            
             await Parallel.ForEachAsync(fileTransfer, parallelOptions, async (transfer, token) =>
             {
                 
@@ -462,7 +465,6 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             {
                 _downloadStatus[fileGroup.Key].DownloadStatus = DownloadStatus.WaitingForSlot;
                 await _orchestrator.WaitForDownloadSlotAsync(token).ConfigureAwait(false);
-                _downloadStatus[fileGroup.Key].DownloadStatus = DownloadStatus.Downloading;
 
                 // 定义进度回调
                 Progress<long> progress = new((bytesDownloaded) => {

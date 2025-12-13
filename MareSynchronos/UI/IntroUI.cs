@@ -235,7 +235,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                     }
 
                     selectedServer = _serverConfigurationManager.GetServerByIndex(serverIdx);
-                    _useLegacyLogin = !selectedServer.UseOAuth2;
+                    _useLegacyLogin = false;
 
                     if (ImGui.Checkbox("使用密钥登录（传统）", ref _useLegacyLogin))
                     {

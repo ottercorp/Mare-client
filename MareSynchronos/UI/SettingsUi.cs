@@ -1931,7 +1931,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
                 if (ImGui.Checkbox("使用 Discord OAuth2 认证", ref useOauth))
                 {
-                    selectedServer.UseOAuth2 = useOauth;
+                    selectedServer.UseOAuth2 = true;
                     _serverConfigurationManager.Save();
                 }
                 _uiShared.DrawHelpText("使用 Discord OAuth2 而非密钥登录来服务器");

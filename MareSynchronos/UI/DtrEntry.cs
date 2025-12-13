@@ -89,7 +89,17 @@ public sealed class DtrEntry : IDisposable, IHostedService
     {
         _logger.LogTrace("Creating new DtrBar entry");
         var entry = _dtrBar.Get("Mare Synchronos");
-        entry.OnClick = _ => _mareMediator.Publish(new UiToggleMessage(typeof(CompactUi)));
+        entry.OnClick = click =>
+        {
+            if (click.ClickType == MouseClickType.Left)
+            {
+                _mareMediator.Publish(new UiToggleMessage(typeof(CompactUi)));
+            }
+            else
+            {
+                _mareMediator.Publish(new UiToggleMessage(typeof(PFinderWindow)));
+            }
+        };
 
         return entry;
     }
