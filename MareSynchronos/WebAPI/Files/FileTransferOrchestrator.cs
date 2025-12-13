@@ -22,6 +22,11 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
     private SemaphoreSlim _downloadSemaphore;
     private int CurrentlyUsedDownloadSlots => _availableDownloadSlots - _downloadSemaphore.CurrentCount;
 
+    private Uri? FilesCdn = null;
+    private readonly Uri? NotCFUri = new Uri("http://mare.ffxiv.wang:6200/files/");
+    private readonly Uri? CFUri = new Uri("https://mare.zettaigame.com/files/");
+    public bool UseCfAccel = true;
+
     public FileTransferOrchestrator(ILogger<FileTransferOrchestrator> logger, MareConfigService mareConfig,
         MareMediator mediator, TokenProvider tokenProvider, HttpClient httpClient) : base(logger, mediator)
     {
@@ -34,12 +39,12 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
         {
-            FilesCdnUri = msg.Connection.ServerInfo.FileServerAddress;
+            FilesCdn = msg.Connection.ServerInfo.FileServerAddress;
         });
 
         Mediator.Subscribe<DisconnectedMessage>(this, (msg) =>
         {
-            FilesCdnUri = null;
+            FilesCdn = null;
         });
         Mediator.Subscribe<DownloadReadyMessage>(this, (msg) =>
         {
@@ -47,7 +52,10 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
         });
     }
 
-    public Uri? FilesCdnUri { private set; get; }
+    public Uri? FilesCdnUri => FilesCdn?.Host is "mare.zettaigame.com" or "mare.ffxiv.wang"
+        ? (UseCfAccel ? CFUri : NotCFUri)
+        : FilesCdn;
+
     public List<FileTransfer> ForbiddenTransfers { get; } = [];
     public bool IsInitialized => FilesCdnUri != null;
 

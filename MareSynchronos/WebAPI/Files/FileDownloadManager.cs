@@ -151,7 +151,9 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         _downloadStatus[downloadGroup].DownloadStatus = DownloadStatus.Downloading;
 
         HttpResponseMessage response = null!;
-        var requestUrl = MareFiles.CacheGetFullPath(fileTransfer[0].DownloadUri, requestId);
+        var address = fileTransfer[0].DownloadUri.Host is "mare.zettaigame.com" or "mare.ffxiv.wang" 
+            ? _orchestrator.FilesCdnUri ?? fileTransfer[0].DownloadUri : fileTransfer[0].DownloadUri;
+        var requestUrl = MareFiles.CacheGetFullPath(address, requestId);
 
         Logger.LogDebug("Downloading {requestUrl} for request {id}", requestUrl, requestId);
         try
@@ -439,7 +441,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             {
                 DownloadStatus = DownloadStatus.Initializing,
                 TotalBytes = downloadGroup.Sum(c => c.Total),
-                TotalFiles = downloadGroup.Count(),
+                TotalFiles = _orchestrator.UseCfAccel ? downloadGroup.Count() : 1,
                 TransferredBytes = 0,
                 TransferredFiles = 0
             };
@@ -474,7 +476,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     if (_downloadStatus.TryGetValue(fileGroup.Key, out var v)) v.TransferredFiles += filesDownloaded;
                 });
 
-                if (true)
+                if (_orchestrator.UseCfAccel)
                 {
                     // === 新的并行处理逻辑 ===
                     await DownloadAndExtractParallel(fileGroup.Key, requestId, [.. fileGroup], fileReplacement, progress, fileProgress, token).ConfigureAwait(false);
