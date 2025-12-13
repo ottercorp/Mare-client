@@ -248,7 +248,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             await Parallel.ForEachAsync(fileTransfer, parallelOptions, async (transfer, token) =>
             {
                 
-                await _downloadSemaphore.WaitAsync(token);
+                await _downloadSemaphore.WaitAsync(token).ConfigureAwait(false);
                 
                 HttpResponseMessage? response = null;
                 ThrottledStream? currentThrottledStream = null;

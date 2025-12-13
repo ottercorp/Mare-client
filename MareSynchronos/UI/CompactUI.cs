@@ -335,7 +335,8 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + shardTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
         }
 
-        if (_apiController.ServerState is ServerState.Connected && _fileTransferOrchestrator.FilesCdnUri?.Host is "mare.zettaigame.com" or "mare.ffxiv.wang")
+        if (_apiController.ServerState is ServerState.Connected && _fileTransferOrchestrator.FilesCdnUri?.Host is "mare.zettaigame.com" or "mare.ffxiv.wang"
+            && UiSharedService.IsSupporter(_apiController.UID))
         {
             ImGui.SetCursorPosX(buttonSize.X / 2);
             var accelerating = _fileTransferOrchestrator.UseCfAccel;
