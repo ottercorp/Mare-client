@@ -346,7 +346,10 @@ public class CompactUi : WindowMediatorSubscriberBase
                     _fileTransferOrchestrator.UseCfAccel = !_fileTransferOrchestrator.UseCfAccel;
                 }
             }
-            UiSharedService.AttachToolTip(accelerating ? "正在使用CF加速, 点击以禁用.": "未使用CF加速, 点击以启用.");
+
+            var text = accelerating ? "正在使用CF加速, 点击以关闭." : "未使用CF加速, 点击以开启.";
+            text += UiSharedService.TooltipSeparator + "请尽量开启CF加速, 节约服务器带宽.";
+            UiSharedService.AttachToolTip(text);
         }
 
         bool isConnectingOrConnected = _apiController.ServerState is ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting;
