@@ -82,7 +82,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
             return _gameData.GetExcelSheet<Lumina.Excel.Sheets.World>()!
                 .Where(w => !w.Name.IsEmpty && w.DataCenter.RowId != 0 &&
                             (w.IsPublic || char.IsUpper(w.Name.ToString()[0])) ||
-                            w is { Region: 2, RowId: >= 1000, UserType: 101 })
+                            w is { Region: 101 })
                 .ToDictionary(w => (ushort)w.RowId, w => w.Name.ToString());
         });
         JobData = new(() =>
