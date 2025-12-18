@@ -7,7 +7,6 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Reflection;
 
 namespace MareSynchronos.WebAPI.Files;
 

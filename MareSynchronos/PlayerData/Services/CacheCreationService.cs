@@ -167,7 +167,13 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 
         _ = Task.Run(async () =>
         {
+            
+#if DEBUG
+            await Task.Delay(TimeSpan.FromMilliseconds(500), token).ConfigureAwait(false);
+#else
             await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);
+#endif
+            
             Logger.LogTrace("Debounce complete, inserting objects to create for: {obj}", string.Join(", ", _debouncedObjectCache));
             await _cacheCreateLock.WaitAsync(token).ConfigureAwait(false);
             foreach (var item in _debouncedObjectCache)
@@ -208,8 +214,12 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         {
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_creationCts.Token, _runtimeCts.Token);
 
+#if DEBUG
+            //await Task.Delay(TimeSpan.FromSeconds(1), linkedCts.Token).ConfigureAwait(false);
+#else
             await Task.Delay(TimeSpan.FromSeconds(1), linkedCts.Token).ConfigureAwait(false);
-
+#endif
+            
             Logger.LogDebug("Creating Caches for {objectKinds}", string.Join(", ", objectKindsToCreate));
 
             try

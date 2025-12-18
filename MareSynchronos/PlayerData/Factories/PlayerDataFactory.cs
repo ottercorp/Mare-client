@@ -8,7 +8,6 @@ using MareSynchronos.PlayerData.Handlers;
 using MareSynchronos.Services;
 using MareSynchronos.Services.Mediator;
 using Microsoft.Extensions.Logging;
-using CharacterData = MareSynchronos.PlayerData.Data.CharacterData;
 
 namespace MareSynchronos.PlayerData.Factories;
 

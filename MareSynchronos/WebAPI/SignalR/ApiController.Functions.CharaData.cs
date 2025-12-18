@@ -1,6 +1,5 @@
 ﻿using MareSynchronos.API.Data;
 using MareSynchronos.API.Dto.CharaData;
-using MareSynchronos.Services.CharaData.Models;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 

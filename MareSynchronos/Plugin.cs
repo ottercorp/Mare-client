@@ -1,5 +1,4 @@
-﻿using Dalamud.Game.ClientState.Objects;
-using Dalamud.Interface.ImGuiFileDialog;
+﻿using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -29,7 +28,6 @@ using NReco.Logging.File;
 using System.Net.Http.Headers;
 using System.Reflection;
 using MareSynchronos.Services.CharaData;
-using Dalamud.Game;
 using System.Net;
 using System.Net.Security;
 using System.Security.Authentication;

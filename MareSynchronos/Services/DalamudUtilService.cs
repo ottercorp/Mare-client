@@ -1,7 +1,4 @@
-﻿using Dalamud.Game;
-using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects;
-using Dalamud.Game.ClientState.Objects.Enums;
+﻿using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text;
@@ -11,10 +8,10 @@ using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using Lumina;
 using Lumina.Excel.Sheets;
 using MareSynchronos.API.Dto.CharaData;
 using MareSynchronos.Interop;
@@ -30,6 +27,7 @@ using System.Text;
 using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 using Map = Lumina.Excel.Sheets.Map;
+using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 using Task = System.Threading.Tasks.Task;
 
 namespace MareSynchronos.Services;
@@ -640,7 +638,7 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         bool isDrawingChanged = false;
         if ((nint)drawObj != IntPtr.Zero)
         {
-            isDrawing = gameObj->RenderFlags == 0b100000000000;
+            isDrawing = (gameObj->RenderFlags & VisibilityFlags.Nameplate) != 0;
             if (!isDrawing)
             {
                 isDrawing = ((CharacterBase*)drawObj)->HasModelInSlotLoaded != 0;
