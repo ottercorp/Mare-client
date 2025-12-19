@@ -23,6 +23,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -160,7 +161,11 @@ public partial class DalamudUtilService : IHostedService, IMediatorSubscriber
         {
             unsafe
             {
-                var result = FFXIVClientStructs.FFXIV.Client.System.Framework.GameWindow.Instance()->GetAid();
+                var gameWindow = (nint)FFXIVClientStructs.FFXIV.Client.System.Framework.GameWindow.Instance();
+                var ptr = Marshal.ReadIntPtr(gameWindow, 0xA8);
+                var text = ptr != IntPtr.Zero ? Marshal.PtrToStringUTF8(ptr) : null;
+                ulong.TryParse(text, out var result);
+                
                 var address = _sigScanner.GetStaticAddressFromSig("48 8B 0D ?? ?? ?? ?? 4C 8B CA");
                 var result2 = address != nint.Zero ? (*(ulong**)address)[1] : 0u;
 #if DEBUG

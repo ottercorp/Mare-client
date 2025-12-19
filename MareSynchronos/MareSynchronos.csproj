@@ -1,12 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Dalamud.NET.Sdk/14.0.0">
+<Project Sdk="Dalamud.NET.Sdk/14.0.1">
   <PropertyGroup>
-    <Authors></Authors>
-    <Company></Company>
-    <Version>1.14.0.1</Version>
-    <Description></Description>
-    <Copyright></Copyright>
-    <PackageProjectUrl>https://github.com/ottercorp/Mare-client</PackageProjectUrl>
+      <Author>darkarchon, wozaiha</Author>
+      <Name>Mare Synchronos</Name>
+      <InternalName>mareSynchronos</InternalName>
+      <AssemblyVersion>1.14.0.2</AssemblyVersion>
+      <Description>/mare</Description>
+      <Punchline>Be Quiet~</Punchline>
+      <RepoUrl>https://github.com/ottercorp/Mare-client</RepoUrl>
+      <IconUrl>https://raw.githubusercontent.com/ottercorp/Mare-client/CN/MareSynchronos/images/icon.png</IconUrl>
+      
   </PropertyGroup>
 
   <PropertyGroup>
@@ -80,5 +83,17 @@
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
+
+    <Target Name="PostBuildCopyFiles" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
+    <Copy
+            SourceFiles="$(TargetDir)MareSynchronos\MareSynchronos.json"
+            DestinationFolder="$(ProjectDir)..\repo\CN\"
+            OverwriteReadOnlyFiles="true" />
+        
+    <Copy
+            SourceFiles="$(TargetDir)MareSynchronos\latest.zip"
+            DestinationFiles="$(ProjectDir)..\repo\CN\$(AssemblyVersion).zip"
+            OverwriteReadOnlyFiles="true" />
+    </Target>
 
 </Project>
