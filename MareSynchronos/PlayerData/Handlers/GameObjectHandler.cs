@@ -169,6 +169,18 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase, IHighP
         var prevDrawObj = DrawObjectAddress;
 
         Address = _getAddress();
+        if (Address != prevAddr && ObjectKind is ObjectKind.Player && !_isOwnedObject)
+        {
+            if (Address != IntPtr.Zero)
+            {
+                Mediator.Publish(new RenderChangeMessage(Address, true));
+            }
+            else
+            {
+                Mediator.Publish(new RenderChangeMessage(prevAddr, false));
+            }
+        }
+        
         if (Address != IntPtr.Zero)
         {
             var drawObjAddr = (IntPtr)((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)Address)->DrawObject;
@@ -405,7 +417,10 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase, IHighP
 
     private void ZoneSwitchStart()
     {
-        if (!_isOwnedObject) return;
+        if (!_isOwnedObject)
+        {
+            Mediator.Publish(new RenderChangeMessage(Address, false));
+        }
 
         _zoningCts = new();
         Logger.LogDebug("[{obj}] Starting Delay After Zoning", this);
