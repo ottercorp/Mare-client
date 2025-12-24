@@ -116,13 +116,13 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
 
     private (short, long, short, long) GetAccessInfo(IntPtr arg)
     {
-        return ((short)0b11111111, TimeSpan.MaxValue.Ticks, (short)0b11111111, TimeSpan.MaxValue.Ticks);
+        return ((short)0b11111111, (long)TimeSpan.MaxValue.TotalMilliseconds, (short)0b11111111, (long)TimeSpan.MaxValue.TotalMilliseconds);
     }
 
     private Dictionary<nint, (short, long, short, long)> GetAllRenderedInfo()
     {
         return _activeGameObjectHandlers.Where(g => g.Address != nint.Zero && g.ObjectKind == ObjectKind.Player).Distinct()
-            .Select(x => (x.Address, ((short)0b11111111, TimeSpan.MaxValue.Ticks, (short)0b11111111, TimeSpan.MaxValue.Ticks)))
+            .Select(x => (x.Address, ((short)0b11111111, (long)TimeSpan.MaxValue.TotalMilliseconds, (short)0b11111111, (long)TimeSpan.MaxValue.TotalMilliseconds)))
             .ToDictionary();
     }
 
