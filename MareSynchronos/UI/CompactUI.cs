@@ -114,6 +114,21 @@ public class CompactUi : WindowMediatorSubscriberBase
             },
             new TitleBarButton()
             {
+                Icon = FontAwesomeIcon.Heart,
+                Click = (msg) =>
+                {
+                    Util.OpenLink($"https://ifdian.net/order/create?plan_id=4c992b16ef6611ef822752540025c377&product_type=0&custom_order_id={_apiController.UID}");
+                },
+                IconOffset = new(2,1),
+                ShowTooltip = () =>
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.Text("赞助MareCN谢谢喵");
+                    ImGui.EndTooltip();
+                }
+            },
+            new TitleBarButton()
+            {
                 Icon = FontAwesomeIcon.Blog,
                 Click = (msg) =>
                 {

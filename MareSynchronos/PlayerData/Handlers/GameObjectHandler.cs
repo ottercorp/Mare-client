@@ -399,7 +399,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase, IHighP
 
     private void ZoneSwitchEnd()
     {
-        if (!_isOwnedObject) return;
+        //if (!_isOwnedObject) return;
 
         try
         {
