@@ -87,7 +87,7 @@
     <Target Name="PostBuildCopyFiles" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
     <Copy
             SourceFiles="$(TargetDir)MareSynchronos\MareSynchronos.json"
-            DestinationFolder="$(ProjectDir)..\repo\CN\"
+            DestinationFiles="$(ProjectDir)..\repo\CN\MareSynchronos.json"
             OverwriteReadOnlyFiles="true" />
         
     <Copy
