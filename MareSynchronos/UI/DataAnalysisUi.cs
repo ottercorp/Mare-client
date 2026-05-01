@@ -634,61 +634,62 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
                     {
                         fileGroupText += " (!)";
                     }
-                    ImRaii.IEndObject fileTab;
-                    using (var textcol = ImRaii.PushColor(ImGuiCol.Text, UiSharedService.Color(new(0, 0, 0, 1)),
-                        requiresCompute && !string.Equals(_selectedFileTypeTab, fileGroup.Key, StringComparison.Ordinal)))
+
+                    var textcol = ImRaii.PushColor(ImGuiCol.Text, UiSharedService.Color(new(0, 0, 0, 1)),
+                        requiresCompute &&
+                        !string.Equals(_selectedFileTypeTab, fileGroup.Key, StringComparison.Ordinal));
+                    var fileTab = ImRaii.TabItem(fileGroupText + "###" + fileGroup.Key);
+                    textcol.Dispose();
+                    
+                    using (fileTab)
                     {
-                        fileTab = ImRaii.TabItem(fileGroupText + "###" + fileGroup.Key);
-                    }
-
-                    if (!fileTab) { fileTab.Dispose(); continue; }
-
-                    if (!string.Equals(fileGroup.Key, _selectedFileTypeTab, StringComparison.Ordinal))
-                    {
-                        _selectedFileTypeTab = fileGroup.Key;
-                        _selectedHash = string.Empty;
-                        _enableBc7ConversionMode = false;
-                        _texturesToConvert.Clear();
-                    }
-
-                    ImGui.TextUnformatted($"{fileGroup.Key} 文件");
-                    ImGui.SameLine();
-                    ImGui.TextUnformatted(fileGroup.Count().ToString());
-
-                    ImGui.TextUnformatted($"{fileGroup.Key} 文件大小（未压缩）:");
-                    ImGui.SameLine();
-                    ImGui.TextUnformatted(UiSharedService.ByteToString(fileGroup.Sum(c => c.OriginalSize)));
-
-                    ImGui.TextUnformatted($"{fileGroup.Key} 文件大小（已压缩）:");
-                    ImGui.SameLine();
-                    ImGui.TextUnformatted(UiSharedService.ByteToString(fileGroup.Sum(c => c.CompressedSize)));
-
-                    if (string.Equals(_selectedFileTypeTab, "tex", StringComparison.Ordinal))
-                    {
-                        ImGui.Checkbox("启用BC7格式转换模式", ref _enableBc7ConversionMode);
-                        if (_enableBc7ConversionMode)
+                        if (!fileTab) continue;
+                        
+                        if (!string.Equals(fileGroup.Key, _selectedFileTypeTab, StringComparison.Ordinal))
                         {
-                            UiSharedService.ColorText("警告BC7格式转换：", ImGuiColors.DalamudYellow);
-                            ImGui.SameLine();
-                            UiSharedService.ColorText("将纹理转换为BC7格式是不可逆转的！", ImGuiColors.DalamudRed);
-                            UiSharedService.ColorTextWrapped("- 将纹理转换为BC7格式将大幅减小它们的大小（已压缩和未压缩）。建议用于高分辨率（4k+）纹理。" +
-                            Environment.NewLine + "- 一些纹理，尤其是使用颜色集的纹理，可能不适合BC7格式的转换，可能产生色彩扭曲、细节损失、曝光失真。" +
-                            Environment.NewLine + "- 在转换纹理之前，请确保拥有正在转换的mod的原始文件，以便在出现问题后重新导入。" +
-                            Environment.NewLine + "- 转换将自动转换所有找到的纹理重复项（文件路径超过1个的条目）。" +
-                            Environment.NewLine + "- 将纹理转换为BC7格式是一项非常复杂的工作，根据要转换的纹理数量，需要一段时间才能完成。"
-                                , ImGuiColors.DalamudYellow);
-                            if (_texturesToConvert.Count > 0 && _uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, "开始转换 " + _texturesToConvert.Count + " 个纹理"))
+                            _selectedFileTypeTab = fileGroup.Key;
+                            _selectedHash = string.Empty;
+                            _enableBc7ConversionMode = false;
+                            _texturesToConvert.Clear();
+                        }
+
+                        ImGui.TextUnformatted($"{fileGroup.Key} 文件");
+                        ImGui.SameLine();
+                        ImGui.TextUnformatted(fileGroup.Count().ToString());
+
+                        ImGui.TextUnformatted($"{fileGroup.Key} 文件大小（未压缩）:");
+                        ImGui.SameLine();
+                        ImGui.TextUnformatted(UiSharedService.ByteToString(fileGroup.Sum(c => c.OriginalSize)));
+
+                        ImGui.TextUnformatted($"{fileGroup.Key} 文件大小（已压缩）:");
+                        ImGui.SameLine();
+                        ImGui.TextUnformatted(UiSharedService.ByteToString(fileGroup.Sum(c => c.CompressedSize)));
+
+                        if (string.Equals(_selectedFileTypeTab, "tex", StringComparison.Ordinal))
+                        {
+                            ImGui.Checkbox("启用BC7格式转换模式", ref _enableBc7ConversionMode);
+                            if (_enableBc7ConversionMode)
                             {
-                                _conversionCancellationTokenSource = _conversionCancellationTokenSource.CancelRecreate();
-                                _conversionTask = _ipcManager.Penumbra.ConvertTextureFiles(_logger, _texturesToConvert, _conversionProgress, _conversionCancellationTokenSource.Token);
+                                UiSharedService.ColorText("警告BC7格式转换：", ImGuiColors.DalamudYellow);
+                                ImGui.SameLine();
+                                UiSharedService.ColorText("将纹理转换为BC7格式是不可逆转的！", ImGuiColors.DalamudRed);
+                                UiSharedService.ColorTextWrapped("- 将纹理转换为BC7格式将大幅减小它们的大小（已压缩和未压缩）。建议用于高分辨率（4k+）纹理。" +
+                                                                 Environment.NewLine + "- 一些纹理，尤其是使用颜色集的纹理，可能不适合BC7格式的转换，可能产生色彩扭曲、细节损失、曝光失真。" +
+                                                                 Environment.NewLine + "- 在转换纹理之前，请确保拥有正在转换的mod的原始文件，以便在出现问题后重新导入。" +
+                                                                 Environment.NewLine + "- 转换将自动转换所有找到的纹理重复项（文件路径超过1个的条目）。" +
+                                                                 Environment.NewLine + "- 将纹理转换为BC7格式是一项非常复杂的工作，根据要转换的纹理数量，需要一段时间才能完成。"
+                                    , ImGuiColors.DalamudYellow);
+                                if (_texturesToConvert.Count > 0 && _uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, "开始转换 " + _texturesToConvert.Count + " 个纹理"))
+                                {
+                                    _conversionCancellationTokenSource = _conversionCancellationTokenSource.CancelRecreate();
+                                    _conversionTask = _ipcManager.Penumbra.ConvertTextureFiles(_logger, _texturesToConvert, _conversionProgress, _conversionCancellationTokenSource.Token);
+                                }
                             }
                         }
+
+                        ImGui.Separator();
+                        DrawTable(fileGroup);
                     }
-
-                    ImGui.Separator();
-                    DrawTable(fileGroup);
-
-                    fileTab.Dispose();
                 }
             }
         }

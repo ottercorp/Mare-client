@@ -1,8 +1,10 @@
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.Chat;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Enum;
@@ -87,10 +89,10 @@ namespace MareSynchronos.UI
             chatGui.ChatMessage += ChatGuiOnChatMessage;
         }
 
-        private void ChatGuiOnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+        private void ChatGuiOnChatMessage(IHandleableChatMessage message)
         {
-            if ((uint)type != 72) return;
-            if (!_gamePfString.IsMatch(message.TextValue)) return;
+            if ((uint)message.LogKind != 72) return;
+            if (!_gamePfString.IsMatch(message.Message.TextValue)) return;
             if (!_configService.Current.ShowPFinder) return;
 
             PrintPFCount();
